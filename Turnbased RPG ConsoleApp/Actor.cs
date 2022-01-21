@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+using System.Threading;
 
 namespace Turnbased_RPG_ConsoleApp
 {
@@ -24,14 +24,8 @@ namespace Turnbased_RPG_ConsoleApp
 
         public List<SkillBase> skills = new List<SkillBase>();
 
-        public enum Ailments
-        {
-            NONE, POISONED, ON_FIRE, SLEEPING,
-        }
 
-        public List<Ailments> curStatusEffects = new List<Ailments>(3);
-
-        public Actor (string n, int lv = 1, Element.Type elmt = null, int mhp = 10, int mcp = 5, int atk = 1, int def = 0, int pow = 1, int spd = 1)
+        public Actor (string n, int lv = 1, Element.Type elmt = null, int mhp = 10, int mcp = 5, int atk = 1, int def = 0, int spAtk = 1, int spd = 1)
         {
             if (elmt == null)
                 elmt = Element.NONE;
@@ -43,7 +37,7 @@ namespace Turnbased_RPG_ConsoleApp
             maxCp = mcp;
             attack = atk;
             defense = def;
-            specialAttack = pow;
+            specialAttack = spAtk;
             speed = spd;
 
             hp = maxHp;
@@ -53,30 +47,57 @@ namespace Turnbased_RPG_ConsoleApp
         public virtual void Attack(Actor target)
         {
             int damage = attack + (int)(level * 0.5f);
-            damage += RandomInt(-2, 2);
+            damage += RandomInt(-(int)(damage * 0.1).Clamp(2, float.MaxValue), (int)(damage * 0.1).Clamp(2, float.MaxValue));
             target.ModifyHealth(-damage);
         }
 
-        public virtual void ModifyHealth(int value, Element.Type attackElement = null)
+        public virtual void ModifyHealth(int value, SkillBase skillUsed = null, Element.Type atkElmt = null)
         {
-            if (attackElement == null)
-                attackElement = Element.NONE;
+            if (atkElmt == null)
+            {
+                if (skillUsed != null)
+                    atkElmt = skillUsed.element;
+                else
+                    atkElmt = Element.NONE;
+            }
 
+            bool isBeingRevived = false;
+            bool shouldAffectHp = true;
             if (value > 0)
             {
-                if (attackElement == element)
-                    value += (int)(value * elementalHealingMult);
-
-                Console.ForegroundColor = ConsoleColor.Green;
-                if (hp + value < maxHp)
-                    print(name + " gained " + value + " HP");
+                if (hp <= 0 && skillUsed != null && skillUsed.skillType == SkillBase.SkillType.REVIVAL)
+                {
+                    hp = 1;
+                    isBeingRevived = true;
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    print(name + " was revived!");
+                    Console.ForegroundColor = ConsoleColor.White;
+                }
+                if (skillUsed != null)
+                    shouldAffectHp = hp > 0 && (isBeingRevived || (!isBeingRevived && skillUsed.skillType != SkillBase.SkillType.REVIVAL));
                 else
-                    print(name + "'s HP is maxed out");
-                Console.ForegroundColor = ConsoleColor.White;
+                    shouldAffectHp = hp > 0;
+
+                if (shouldAffectHp)//Won't heal if still down
+                {
+                    if (element != Element.NONE && atkElmt == element)//Same type healing bonus
+                        value += (int)(value * elementalHealingMult);
+
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    if (hp + value < maxHp)
+                        print(name + " gained " + value + " HP");
+                    else
+                        print(name + "'s HP is maxed out");
+                    Console.ForegroundColor = ConsoleColor.White;
+                }
+                else if (skillUsed != null && !isBeingRevived && skillUsed.skillType == SkillBase.SkillType.REVIVAL)
+                    print("It had no visible effect on " + name);
+
             }
             else
             {
-                float mult = Element.CheckAttackAgainst(attackElement, this);
+                float mult = Element.CheckAttackAgainst(atkElmt, this);
+
                 int newValue = (int)(value * mult);
                 if (mult != 0)
                     newValue.Clamp(1, int.MaxValue);
@@ -89,7 +110,9 @@ namespace Turnbased_RPG_ConsoleApp
                 Console.ForegroundColor = ConsoleColor.White;
             }
 
-            hp = (hp + value).Clamp(0, maxHp);
+            if (shouldAffectHp)//Won't modify if still down
+                hp = (hp + value).Clamp(0, maxHp);
+            
         }
 
         public virtual void ModifyConra(int value, Element.Type attackElement = null)
@@ -121,7 +144,7 @@ namespace Turnbased_RPG_ConsoleApp
                 Console.ForegroundColor = ConsoleColor.White;
             }
 
-            hp = (hp + value).Clamp(0, maxCp);
+            cp = (cp + value).Clamp(0, maxCp);
         }
 
         public virtual void Defeat()
@@ -129,6 +152,8 @@ namespace Turnbased_RPG_ConsoleApp
             Console.ForegroundColor = ConsoleColor.Cyan;
             print(name + " was defeated!\n");
             Console.ForegroundColor = ConsoleColor.White;
+
+            statusEffects.Clear();
         }
     }
 
@@ -137,11 +162,59 @@ namespace Turnbased_RPG_ConsoleApp
         public int expYield;
         public int baseExp = 4;
 
-        public Enemy(string n, int lv = 1, Element.Type elmt = null,  int mhp = 10, int mcp = 5, int atk = 3, int def = 0, int pow = 1, int spd = 1) : base(n, lv, elmt, mhp, mcp, atk, def, pow, spd)
+        public Func<SkillBase> decideTurnAction;
+        public List<Actor> heroList;
+
+        public Enemy(string n, int lv = 1, Element.Type elmt = null,  int mhp = 10, int mcp = 5, int atk = 3, int def = 0, int spAtk = 1, int spd = 1, int exp = 4
+            , List<SkillBase> skillList = null, Func<SkillBase> action = null) : base(n, lv, elmt, mhp, mcp, atk, def, spAtk, spd)
         {
+            baseExp = exp;
             expYield = (int)( baseExp * (lv * 0.25f).Clamp(1, 5) );
 
-            skills.Add(GameManager.Attack);
+            if (skillList != null)
+                skills = skillList;
+            
+            skills.Add(SkillManager.Attack);
+
+            if (action != null)
+                decideTurnAction = action;
+            else
+                decideTurnAction = () => { return DecideTurnAction(); };
+        }
+        public Enemy(Enemy enemy) : base(n: "", lv: 1, elmt: null, mhp: 1, mcp: 1, atk: 1, def: 1, spAtk: 1, spd: 1)
+        {
+            name = enemy.name;
+            level = enemy.level;
+            element = enemy.element;
+            maxHp = enemy.maxHp;
+            hp = maxHp;
+            maxCp = enemy.maxCp;
+            cp = maxCp;
+            attack = enemy.attack;
+            defense = enemy.defense;
+            specialAttack = enemy.specialAttack;
+            speed = enemy.speed;
+            baseExp = enemy.baseExp;
+            expYield = enemy.expYield;
+            decideTurnAction = enemy.decideTurnAction;
+            skills = enemy.skills;
+        }
+
+        SkillBase DecideTurnAction()
+        {
+            var skillPool = skills;
+            foreach (var skill in skills)
+            {
+                if (skill.skillCost > cp && Chance(1, 2))//Leaves a small chance to use a skill that costs too much
+                    skillPool.Remove(skill);
+            }
+
+            var randInt = RandomInt(0, skillPool.Count);
+            if (randInt == skillPool.Count)//Basic Attack is last so leave an increased chance for that
+                randInt = skillPool.Count - 1;
+
+            //nextAction = skillPool[randInt];
+            return skillPool[randInt];
         }
 
         public void ChooseTarget(List<Actor> actorPool, SkillBase.TargetType targetType = SkillBase.TargetType.TARGET_SINGLE_OPPONENT)
@@ -173,8 +246,8 @@ namespace Turnbased_RPG_ConsoleApp
 
         public Dictionary<int, SkillBase> skillDictionary = null;
 
-        public Hero(string n, int lv = 1, Element.Type elmt = null, int mhp = 10, int mcp = 5, int atk = 5, int def = 0, int pow = 1, int spd = 2, int inxp = 8, float growthScalar = 1.75f
-            , Dictionary<int, SkillBase> skillDict = null) : base(n, lv, elmt, mhp, mcp, atk, def, pow, spd) 
+        public Hero(string n, int lv = 1, Element.Type elmt = null, int mhp = 10, int mcp = 5, int atk = 5, int def = 0, int spAtk = 1, int spd = 2, int inxp = 8, float growthScalar = 1.75f
+            , Dictionary<int, SkillBase> skillDict = null) : base(n, lv, elmt, mhp, mcp, atk, def, spAtk, spd) 
         {
             initExp = inxp;
             expGrowthScaler = growthScalar;
@@ -187,12 +260,28 @@ namespace Turnbased_RPG_ConsoleApp
             skillDictionary = skillDict;
         }
 
+        public List<SkillBase> GetSortSkills(List<SkillBase> skills = null)
+        {
+            if (skills == null)
+                skills = this.skills;
+            return skills.OrderBy((x) => x.skillType).ThenBy((x) => x.element.nameFromEnum).ThenBy((x) => x.targetType).ThenBy((x) => x.skillCost).ToList();
+        }
+
+        public override void ModifyHealth(int value, SkillBase skillUsed = null, Element.Type atkElmt = null)
+        {
+            base.ModifyHealth(value, skillUsed, atkElmt);
+            if (hp > 0)
+                isDefeated = false;
+        }
+
         public override void Defeat()
         {
             isDefeated = true;
             Console.ForegroundColor = ConsoleColor.Red;
             print(name + " blacked out!\n");
             Console.ForegroundColor = ConsoleColor.White;
+
+            statusEffects.Clear();
         }
 
         public void LearnSkill(SkillBase skill)
@@ -271,6 +360,22 @@ namespace Turnbased_RPG_ConsoleApp
             Console.ForegroundColor = ConsoleColor.Cyan;
             print(name);
             print("LV: " + level);
+
+            statusEffects.RemoveAll((m) => m == null);
+            if (statusEffects.Count > 0)
+            {
+                Console.ForegroundColor = ConsoleColor.Magenta;
+                //print("Ailments: ");
+                for (int i = 0; i < statusEffects.Count; i++)
+                {
+                    if (i > 0)
+                        print(" | ", true);
+                    print(statusEffects[i].name, true);
+                }
+                print("");
+                Console.ForegroundColor = ConsoleColor.Cyan;
+            }
+
             //print("Element: " + element.nameFromEnum.ToString());
             //print("");
 

@@ -8,9 +8,9 @@ namespace Turnbased_RPG_ConsoleApp
 {
     public class SkillBase
     {
-        private string _skillName;
+        protected string _skillName;
         //private string _skillDescription;
-        private string _skillInfo;
+        protected string _skillInfo;
 
         public string skillName { get { return _skillName; } }
         //public string skillDescription { get { return _skillDescription; } }
@@ -20,14 +20,14 @@ namespace Turnbased_RPG_ConsoleApp
 
         public enum SkillType
         {
-            COMBAT, HEALING, REVIVAL
+            DAMAGING, INFLICTING, HEALING, CURING, REVIVAL
         }
         public enum TargetType
         {
-            NO_TARGET, TARGET_SINGLE_OPPONENT, TARGET_ALL_OPPONENTS, TARGET_SINGLE_ALLY, TARGET_ALL_ALLIES, TARGET_EVERYONE
+            NO_TARGET, TARGET_SINGLE_OPPONENT, TARGET_ALL_OPPONENTS, TARGET_SINGLE_ALLY, TARGET_ALL_ALLIES, TARGET_ANYONE, TARGET_EVERYONE
         }
 
-        public SkillType skillType = SkillType.COMBAT;
+        public SkillType skillType = SkillType.DAMAGING;
         public TargetType targetType;
         public Element.Type element = Element.NONE;
 
@@ -45,7 +45,7 @@ namespace Turnbased_RPG_ConsoleApp
                 elmt = Element.NONE;
             element = elmt;
 
-            skillType = SkillType.COMBAT;
+            skillType = SkillType.DAMAGING;
         }
     }
 
@@ -73,6 +73,19 @@ namespace Turnbased_RPG_ConsoleApp
         {
             this.action = action;
         }
+        public Skill(Skill<T1> skill) : base(name: "", cost: 0, targetType: TargetType.TARGET_SINGLE_OPPONENT, elmt: null, info: "")
+        {
+            _skillName = skill.skillName;
+            _skillInfo = skill.skillInfo;
+            targetType = skill.targetType;
+            skillCost = skill.skillCost;
+            element = skill.element;
+
+            skillType = skill.skillType;
+
+            action = skill.action;
+            skillType = skill.skillType;
+        }
 
         public void Use(T1 t1)
         {
@@ -85,10 +98,23 @@ namespace Turnbased_RPG_ConsoleApp
         public Action<T1, T2> action;
 
         public Skill(string name, Action<T1, T2> action, int cost = 0, TargetType targetType = TargetType.TARGET_SINGLE_OPPONENT
-            , Element.Type elmt = null, SkillType skillType = SkillType.COMBAT, string info = "") : base(name, cost, targetType, elmt, info)
+            , Element.Type elmt = null, SkillType skillType = SkillType.DAMAGING, string info = "") : base(name, cost, targetType, elmt, info)
         {
             this.action = action;
             this.skillType = skillType;
+        }
+        public Skill(Skill<T1, T2> skill) : base(name: "", cost: 0, targetType: TargetType.TARGET_SINGLE_OPPONENT, elmt: null, info: "")
+        {
+            _skillName = skill.skillName;
+            _skillInfo = skill.skillInfo;
+            targetType = skill.targetType;
+            skillCost = skill.skillCost;
+            element = skill.element;
+
+            skillType = skill.skillType;
+
+            action = skill.action;
+            skillType = skill.skillType;
         }
 
         public void Use(T1 t1, T2 t2)

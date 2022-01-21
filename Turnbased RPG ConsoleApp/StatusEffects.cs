@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+using System.Threading;
+using static Turnbased_RPG_ConsoleApp.Basic;
 
 namespace Turnbased_RPG_ConsoleApp
 {
@@ -13,37 +14,87 @@ namespace Turnbased_RPG_ConsoleApp
         static Type poisoned = new Type("POISONED", 5, 8, (target) =>
         {
             Console.ForegroundColor = ConsoleColor.Magenta;
-            Basic.print(target.name + " felt the effects of the poison"); ;
+            print(target.name + " felt the effects of the poison"); ;
             Console.ForegroundColor = ConsoleColor.White;
             
             var baseDamage = (target.maxHp / 10f);
-            target.ModifyHealth( -(int)(baseDamage + Basic.RandomInt(-(int)(baseDamage / 5).Clamp(2, 10), (int)(baseDamage / 5).Clamp(2, 10) )).Clamp(1, float.MaxValue), Element.IGNORE_ALL);
+            target.ModifyHealth( -(int)(baseDamage + RandomInt(-(int)(baseDamage / 5).Clamp(2, 10), (int)(baseDamage / 5).Clamp(2, 10) )).Clamp(1, float.MaxValue), atkElmt: Element.IGNORE_ALL);
 
         }, "{0} recovered from the poison");
 
-        static Type flaming = new Type("FLAMING", 1, 5, (target) =>
+        static Type flaming = new Type("FLAMING", 1, 4, (target) =>
         {
-            var baseDamage = (target.maxHp / 5f);
-            target.ModifyHealth( -(int)(baseDamage + Basic.RandomInt(-(int)(baseDamage / 5).Clamp(2, 10), (int)(baseDamage / 5).Clamp(2, 10) )), Element.FIRE);
+            Console.ForegroundColor = ConsoleColor.Magenta;
+            print(target.name + " got burned by the flames"); ;
+            Console.ForegroundColor = ConsoleColor.White;
+
+            var baseDamage = (target.maxHp / 3f).Clamp(1, 40);
+            target.ModifyHealth( -(int)(baseDamage + RandomInt(-(int)(baseDamage / 5).Clamp(2, 10), (int)(baseDamage / 5).Clamp(2, 10) )), atkElmt: Element.FIRE);
         }, "{0} is no longer on fire");
 
         static Type sleeping = new Type("SLEEPING", 2, 4, (target) =>
         {
-            target.nextAction = GameManager.Sleep;
+            Console.ForegroundColor = ConsoleColor.Magenta;
+            print(target.name + " is asleep"); ;
+            Console.ForegroundColor = ConsoleColor.White;
+
+            target.nextAction = SkillManager.Sleep;
             target.targets.Clear();
         }, "{0} woke up");
 
-        /*static Type ground = new Type();
-        static Type air = new Type();
-        static Type electic = new Type();*/
+        static Type paralyzed = new Type("PARALYZED", 7, 12, (target) =>
+        {
+            Console.ForegroundColor = ConsoleColor.Magenta;
+            print(target.name + " is fighting the paralysis"); ;
+            Console.ForegroundColor = ConsoleColor.White;
+
+            if (Chance(1, 2))
+            {
+                target.nextAction = SkillManager.Immobile;
+                target.targets.Clear();
+            }
+        }, "{0} is free of the paralysis");
+
+        static Type confused = new Type("CONFUSED", 2, 5, (target) =>
+        {
+            Console.ForegroundColor = ConsoleColor.Magenta;
+            print(target.name + " is confused");
+            Console.ForegroundColor = ConsoleColor.White;
+
+            if (Chance(1, 3))//ignore command and do a normal attack on anyone
+            {
+                target.nextAction = new Skill<Actor, Actor>(SkillManager.Attack);
+                target.nextAction.targetType = SkillBase.TargetType.TARGET_ANYONE;
+                target.targets.Clear();
+            }
+            else if (target.nextAction.targetType != SkillBase.TargetType.TARGET_EVERYONE && Chance(1, 4))//use intended move on the wrong target(s)
+            {
+                if (target.targets.Count == 1 && (target.nextAction.targetType == SkillBase.TargetType.TARGET_SINGLE_OPPONENT
+                    || target.nextAction.targetType == SkillBase.TargetType.TARGET_SINGLE_ALLY))//Hit anyone
+                {
+                    target.nextAction = new Skill<Actor, Actor>(target.nextAction as Skill<Actor, Actor>);
+                    target.nextAction.targetType = SkillBase.TargetType.TARGET_ANYONE;
+                }
+                else//Target the opposite group from the intended targets
+                {
+                    target.nextAction = new Skill<Actor, List<Actor>>(target.nextAction as Skill<Actor, List<Actor>>);
+                    if (target.nextAction.targetType == SkillBase.TargetType.TARGET_ALL_ALLIES)
+                        target.nextAction.targetType = SkillBase.TargetType.TARGET_ALL_OPPONENTS;
+                    else if (target.nextAction.targetType == SkillBase.TargetType.TARGET_ALL_OPPONENTS)
+                        target.nextAction.targetType = SkillBase.TargetType.TARGET_ALL_ALLIES;
+                }
+                target.targets.Clear();
+            }
+
+        }, "{0} came to their senses");
+
 
         //public static Type NONE { get { return none; } }
         public static Type POISONED { get { return poisoned; } }
         public static Type FLAMING { get { return flaming; } }
         public static Type SLEEPING { get { return sleeping; } }
-        /*public static Type GROUND { get { return ground; } }
-        public static Type AIR { get { return air; } }
-        public static Type ELECTRIC { get { return electic; } }*/
+        public static Type PARALYZED { get { return paralyzed; } }
+        public static Type CONFUSED { get { return confused; } }
 
         public class Type : Basic
         {
@@ -54,7 +105,7 @@ namespace Turnbased_RPG_ConsoleApp
             int maxPossibleTurns = 8;
 
             int turnLimit;
-            int turnsActive = 0;
+            public int turnsActive = 0;
 
             string removeText = "{0} went back to normal";
 
@@ -83,8 +134,9 @@ namespace Turnbased_RPG_ConsoleApp
             }
 
 
-            public bool TryInflict(Actor target)
+            public bool TryInflict(Actor target, int duration = -1)
             {
+                Thread.Sleep(TimeSpan.FromSeconds(0.01));//For randomizing
                 target.statusEffects.RemoveAll((m) => m == null);
                 //print(target.name + " has " + target.statusEffects.Count + " status effects. Can add more: " + (target.statusEffects.Count < target.statusEffectCapacity));
 
@@ -95,7 +147,10 @@ namespace Turnbased_RPG_ConsoleApp
                 {
                     var dupe = new Type(this);
                     target.statusEffects.Add(dupe);
-                    dupe.turnLimit = RandomInt(minPossibleTurns, maxPossibleTurns);
+                    if (duration < 0)
+                        dupe.turnLimit = RandomInt(minPossibleTurns, maxPossibleTurns);
+                    else
+                        dupe.turnLimit = duration;
                 }
                 else if (alreadyInflicted)
                     print(target.name + " is already " + name.ToLower());
@@ -108,8 +163,11 @@ namespace Turnbased_RPG_ConsoleApp
                 turnAction.Invoke(target);
 
                 turnsActive++;
-
-                if (turnsActive >= turnLimit)
+                //Check for duration at the end of turn
+            }
+            public void TryRemoveEffect(Actor target, bool forceRemove = false)
+            {
+                if (turnsActive >= turnLimit || forceRemove)
                 {
                     target.statusEffects[target.statusEffects.IndexOf(this)] = null;
 
@@ -117,7 +175,6 @@ namespace Turnbased_RPG_ConsoleApp
                     print(string.Format(removeText, target.name));
                     Console.ForegroundColor = ConsoleColor.White;
                 }
-
             }
 
         }
