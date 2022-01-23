@@ -44,7 +44,7 @@ namespace Turnbased_RPG_ConsoleApp
 
         public static void ConstructAllElements()
         {
-            ignore_all.nameFromEnum = Type.Name.IGNORE_ALL;
+            ignore_all.nameFromEnum = Type.Name.OMNI;
 
             #region NONE
             none.nameFromEnum = Type.Name.NONE;
@@ -114,7 +114,7 @@ namespace Turnbased_RPG_ConsoleApp
         {
             public enum Name
             {
-                NONE, FIRE, WATER, PLANT, GROUND, AIR, ELECTRIC, IGNORE_ALL
+                OMNI, NONE, FIRE, WATER, PLANT, GROUND, AIR, ELECTRIC
             }
             public Name nameFromEnum = Name.NONE;
 

@@ -27,6 +27,7 @@ namespace Turnbased_RPG_ConsoleApp
         //
 
         public static Skill<Actor, Actor> Attack;
+        public static Skill<Actor, Actor> Scan_Lash;
 
         //Fire moves
         public static Skill<Actor, Actor> Fireball;
@@ -123,6 +124,24 @@ namespace Turnbased_RPG_ConsoleApp
                 print($"{n} didn't have enough CP");
             }
 
+            Scan_Lash = new Skill<Actor, Actor>("Scan Lash", (user, target) =>
+            {
+                print($"{user.name} used {Scan_Lash.skillName} on {target.name}");
+                //user.Attack(target);
+                target.ModifyHealth(-2, Scan_Lash);
+
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                print("------------------------------------");//36
+                print($"Scan results for {target.name}:");
+                print($"LV: {target.level}");
+                print($"ELMT: {target.element.nameFromEnum}");
+                print($"HP: {target.hp}/{target.maxHp}");
+                print($"CP: {target.cp}/{target.maxCp}");
+                print("------------------------------------");//36
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.ReadKey(true);
+            }
+            , 0, SkillBase.TargetType.TARGET_SINGLE_OPPONENT, Element.IGNORE_ALL);
 
             #region TURN WASTING
             Skip_Turn = new Skill<Actor>("Do Nothing", (user) =>
@@ -158,7 +177,7 @@ namespace Turnbased_RPG_ConsoleApp
             });
             #endregion
 
-            //For testing purposes
+            #region TESTING
             Damage_Allies_Test = new Skill<Actor, List<Actor>>("Damage Allies", (user, targets) =>
             {
                 if (user.cp >= Damage_Allies_Test.skillCost)
@@ -252,7 +271,7 @@ namespace Turnbased_RPG_ConsoleApp
                     OutOfCP(user.name);
             }
             , 0, SkillBase.TargetType.TARGET_ALL_ALLIES, Element.IGNORE_ALL, SkillBase.SkillType.HEALING);
-            //
+            #endregion
 
             #region STATUS EFFECT GIVING
             Poision_Powder = new Skill<Actor, Actor>("Poison Powder", (user, target) =>
@@ -881,6 +900,10 @@ namespace Turnbased_RPG_ConsoleApp
 
     public class Basic
     {
+        /*public const string _UNDERLINE = "\x1B[4m";
+        public const string _RESET = "\x1B[0m";*/
+        static Random r = new Random();
+
         public static T print<T>(T text, bool sameLine = false)
         {
             if (sameLine)
@@ -898,7 +921,6 @@ namespace Turnbased_RPG_ConsoleApp
         /// <returns></returns>
         public static int RandomInt(int min, int max)
         {
-            Random r = new Random();
             Random r2 = new Random(r.Next(-999, 999));
             Random r3 = new Random(r.Next(-r2.Next(), 999));
 
@@ -945,6 +967,28 @@ namespace Turnbased_RPG_ConsoleApp
                 v = min;
 
             return v;
+        }
+
+        //https://stackoverflow.com/questions/56692/random-weighted-choice
+        public static T RandomElementByWeight<T>(this IEnumerable<T> sequence, Func<T, float> weightSelector)
+        {
+            float totalWeight = sequence.Sum(weightSelector);
+            // The weight we are after...
+            float itemWeightIndex = (float)new Random().NextDouble() * totalWeight;
+            float currentWeightIndex = 0;
+
+            foreach (var item in from weightedItem in sequence select new { Value = weightedItem, Weight = weightSelector(weightedItem) })
+            {
+                currentWeightIndex += item.Weight;
+
+                // If we've hit or passed the weight we are after for this item then it's the one we want....
+                if (currentWeightIndex >= itemWeightIndex)
+                    return item.Value;
+
+            }
+
+            return default(T);
+
         }
     }
 }

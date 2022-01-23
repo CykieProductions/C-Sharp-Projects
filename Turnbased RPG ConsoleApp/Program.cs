@@ -23,7 +23,7 @@ namespace Turnbased_RPG_ConsoleApp
 
 
             List<Hero> heroes = new List<Hero>();
-            heroes.Add(new Hero("Cyclone", 1, Element.NONE, 25, 16, skillDict: new Dictionary<int, SkillBase>()
+            heroes.Add(new Hero("Cyclone", 1, Element.NONE, mhp: 28, mcp: 16, def: 1, inxp: 4, skillDict: new Dictionary<int, SkillBase>()
             {
                 [2] = SkillManager.Healing_Powder,
                 [4] = SkillManager.Curing_Powder,
@@ -38,9 +38,10 @@ namespace Turnbased_RPG_ConsoleApp
                 [30] = SkillManager.Ultra_Healing_Powder,
                 [40] = SkillManager.Ultra_Healing_Cloud,
             }));
+            heroes[0].skills.Add(SkillManager.Scan_Lash);
 
             //heroes.Add(new Hero("Shady", 1, Element.PLANT, 30, 9, 6, spd: 1));
-            heroes.Add(new Hero("Foo", 1, Element.NONE, 12, 20, 3, spd: 0, inxp: 3, growthScalar: 3.2f, skillDict: new Dictionary<int, SkillBase>()
+            /*heroes.Add(new Hero("Foo", 1, Element.NONE, 12, 20, 3, spd: 0, inxp: 3, growthScalar: 3.2f, skillDict: new Dictionary<int, SkillBase>()
             {
                 [3] = SkillManager.Fireball,
                 [7] = SkillManager.Healing_Powder,
@@ -49,7 +50,7 @@ namespace Turnbased_RPG_ConsoleApp
                 [25] = SkillManager.Blazing_Vortex,
                 [34] = SkillManager.Eruption,
                 [42] = SkillManager.Supernova,
-            }));
+            }));*/
             heroes[0].exp = 5000;
             /*heroes[0].LearnSkill(SkillManager.Healing_Powder);
             heroes[0].LearnSkill(SkillManager.Super_Healing_Powder);
@@ -62,29 +63,28 @@ namespace Turnbased_RPG_ConsoleApp
             heroes[0].LearnSkill(SkillManager.Ultra_Pheonix_Powder);
             heroes[0].LearnSkill(SkillManager.Pheonix_Cloud);
             heroes[0].LearnSkill(SkillManager.Pheonix_Powder);
-            heroes[0].LearnSkill(SkillManager.Poision_Powder);*/
+            heroes[0].LearnSkill(SkillManager.Poision_Powder);*
 
             heroes[0].LearnSkill(SkillManager.Leaf_Storm);
             heroes[0].LearnSkill(SkillManager.Root_Wave);
             heroes[0].LearnSkill(SkillManager.Thorn_Canopy);
             heroes[0].LearnSkill(SkillManager.Flare_Fall);
             heroes[0].LearnSkill(SkillManager.Blazing_Vortex);
-            heroes[0].LearnSkill(SkillManager.Supernova);
+            heroes[0].LearnSkill(SkillManager.Supernova);*/
 
-            StatusEffect.CONFUSED.TryInflict(heroes[0]);//temp
-            StatusEffect.PARALYZED.TryInflict(heroes[1], 4);//temp
-
-            heroes[1].exp = 5000;
+            //heroes[1].exp = 5000;
             /*heroes[1].LearnSkill(SkillManager.Damage_Allies_Test);
             heroes[1].LearnSkill(SkillManager.Poison_Allies_Test);
             heroes[1].LearnSkill(SkillManager.Ignite_Allies_Test);*/
-            heroes[1].LearnSkill(SkillManager.Restore_CP_Allies_Test);
+            //heroes[1].LearnSkill(SkillManager.Restore_CP_Allies_Test);
 
-            //temp
-            isInBattle = true;
+            WorldManager.ConstructAllAreas(heroes.ToList<Actor>());
+
             List<Enemy> enemies = new List<Enemy>();
+            /*temp
+            isInBattle = true;
             enemies.Add(new Enemy("???", 1, mhp: 1));
-            //
+            */
 
             while (gameIsRunning)
             {
@@ -109,8 +109,10 @@ namespace Turnbased_RPG_ConsoleApp
                         for (int e = 0; e < targetPool.Count; e++)
                         {
                             print((e + 1) + ". " + targetPool[e].name, true);
+
                             if (targetPool[e] is Hero)
                                 print(" (HP: " + targetPool[e].hp + ")", true);
+
                             print("  ", true);
                         }
                         print("");
@@ -144,7 +146,7 @@ namespace Turnbased_RPG_ConsoleApp
 
                     if (skills.Count > 0)
                     {
-                        print(hero.name + "'s CP: " + hero.cp);
+                        print(hero.name + " | HP: " + hero.hp + " | CP: " + hero.cp);
                         print("Choose a skill");
 
                         for (int s = 0; s < skills.Count; s++)
@@ -274,7 +276,7 @@ namespace Turnbased_RPG_ConsoleApp
                     if (target.hp <= 0)
                     {
                         target.nextAction = null;
-                        //target.targets.Clear();//cuases issues if you down yourself
+                        //target.targets.Clear();//causes issues if you down yourself
 
                         target.Defeat();//Heroes aren't considered fully defeated until here
                         if (enemies.Contains(target))
@@ -294,6 +296,7 @@ namespace Turnbased_RPG_ConsoleApp
                 {
                     /*Console.ForegroundColor = ConsoleColor.Black;
                     Console.BackgroundColor = ConsoleColor.White;*/
+                    print($"Location: {WorldManager.curArea.name} | Battles left: {WorldManager.curArea.encounters.Count - WorldManager.areaProgress}");
                     print("1. NEXT BATTLE  2. CONRA  3. STATS  4. QUIT\t");
                     /*Console.ForegroundColor = ConsoleColor.White;
                     Console.BackgroundColor = ConsoleColor.Black;*/
@@ -307,13 +310,17 @@ namespace Turnbased_RPG_ConsoleApp
                     {
                         case 1://Start Battle Logic
                             isInBattle = true;
-                            enemies.Clear();
 
                             //Add the enemies
                             {
-                                var playerParty = heroes.ToList<Actor>();
+                                enemies = new List<Enemy>(WorldManager.curArea.GenerateEncounter(WorldManager.areaProgress));//modifying the enemies list will no longer affect the WorldManager
+
+                                /*var playerParty = heroes.ToList<Actor>();
                                 //enemies.Add(EnemyManager.GetEnemy("Flarix", playerParty));
-                                enemies.Add(EnemyManager.GetEnemy("Growfa", playerParty));
+                                if(heroes[0].level>2)
+                                    enemies.Add(EnemyManager.GetEnemy("Growfa", playerParty, 50));
+                                else
+                                    enemies.Add(EnemyManager.GetEnemy("Growfa", playerParty));
                                 /*enemies.Add(new Enemy("Ethra", 1, Element.AIR, mhp: 10));
                                 enemies.Add(new Enemy("Vinerlily", 1, Element.PLANT, mhp: 10));
                                 enemies.Add(new Enemy("Terradon", 1, Element.GROUND, mhp: 10));*/
@@ -514,7 +521,7 @@ namespace Turnbased_RPG_ConsoleApp
                                 Thread.Sleep(TimeSpan.FromSeconds(.75));
                                 if (RandomInt(0, 2) == 0)
                                 {
-                                    print(" But your path was block");
+                                    print(" But your path was blocked");
                                     i = heroes.Count - 1;
                                     choseTurnAction = true;
                                 }
@@ -524,6 +531,7 @@ namespace Turnbased_RPG_ConsoleApp
                                     i = heroes.Count - 1;
                                     isInBattle = false;
                                     choseTurnAction = true;
+                                    WorldManager.FinishedBattle(true);
                                 }
                             }
 
@@ -763,6 +771,7 @@ namespace Turnbased_RPG_ConsoleApp
                                 }
                             }
 
+
                             Console.ForegroundColor = ConsoleColor.Green;
                             print("YOU WIN!");
                             Console.ForegroundColor = ConsoleColor.White;
@@ -776,6 +785,9 @@ namespace Turnbased_RPG_ConsoleApp
 
                             for (int h = 0; h < heroes.Count; h++)
                             {
+                                heroes[h].targets.Clear();
+                                heroes[h].nextAction = null;
+
                                 while (heroes[h].exp >= heroes[h].neededExp)
                                 {
                                     heroes[h].LevelUp();
@@ -786,6 +798,7 @@ namespace Turnbased_RPG_ConsoleApp
 
                             isInBattle = false;
                             totalExpFromBattle = 0;
+                            WorldManager.FinishedBattle();
                         }
                         //Check if player lost
                         else
@@ -796,6 +809,9 @@ namespace Turnbased_RPG_ConsoleApp
                                     break;
                                 else if (!hero.isDefeated)
                                     hero.Defeat();
+
+                                hero.targets.Clear();
+                                hero.nextAction = null;
 
                                 if (hero == heroes[heroes.Count - 1])//Only say "you lost" once
                                 {

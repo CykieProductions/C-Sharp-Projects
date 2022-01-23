@@ -102,8 +102,10 @@ namespace Turnbased_RPG_ConsoleApp
                 if (mult != 0)
                     newValue.Clamp(1, int.MaxValue);
                 value = newValue;
-
                 //print("Damage has been multiplied by " + mult);
+
+                value = (int)(value * (100f / (100f + defense + defense * .25f)));
+                //print(name + " will take " + Math.Round((100f / (100f + defense + defense * .25f)) * 100f, 1) + "% of the damage");
 
                 Console.ForegroundColor = ConsoleColor.Yellow;
                 print(name + " took " + -value + " damage");
@@ -165,11 +167,17 @@ namespace Turnbased_RPG_ConsoleApp
         public Func<SkillBase> decideTurnAction;
         public List<Actor> heroList;
 
+        /// <summary>
+        /// Out of 100
+        /// </summary>
+        public int encounterWeight = 50;
+        public Dictionary<int, SkillBase> skillDictionary = null;
+
         public Enemy(string n, int lv = 1, Element.Type elmt = null,  int mhp = 10, int mcp = 5, int atk = 3, int def = 0, int spAtk = 1, int spd = 1, int exp = 4
-            , List<SkillBase> skillList = null, Func<SkillBase> action = null) : base(n, lv, elmt, mhp, mcp, atk, def, spAtk, spd)
+            , List<SkillBase> skillList = null, Func<SkillBase> action = null, Dictionary<int, SkillBase> skillDict = null) : base(n, lv, elmt, mhp, mcp, atk, def, spAtk, spd)
         {
             baseExp = exp;
-            expYield = (int)( baseExp * (lv * 0.25f).Clamp(1, 5) );
+            expYield = baseExp;
 
             if (skillList != null)
                 skills = skillList;
@@ -180,6 +188,8 @@ namespace Turnbased_RPG_ConsoleApp
                 decideTurnAction = action;
             else
                 decideTurnAction = () => { return DecideTurnAction(); };
+
+            skillDictionary = skillDict;
         }
         public Enemy(Enemy enemy) : base(n: "", lv: 1, elmt: null, mhp: 1, mcp: 1, atk: 1, def: 1, spAtk: 1, spd: 1)
         {
@@ -199,6 +209,11 @@ namespace Turnbased_RPG_ConsoleApp
             decideTurnAction = enemy.decideTurnAction;
             skills = enemy.skills;
         }
+
+        /*public void SetExpLevelBonus(int lvDif)
+        {
+            expYield = (int)(baseExp * (level * 0.25f).Clamp(1, 5));
+        }*/
 
         SkillBase DecideTurnAction()
         {
@@ -332,6 +347,11 @@ namespace Turnbased_RPG_ConsoleApp
             specialAttack += randInt;
             if (randInt > 0)
                 print("SPECIAL ATTACK increased by " + randInt);
+
+            randInt = RandomInt(-1, 3).Clamp(0, 3);
+            defense += randInt;
+            if (randInt > 0)
+                print("DEFENSE increased by " + randInt);
 
             if (skillDictionary != null)
             {
