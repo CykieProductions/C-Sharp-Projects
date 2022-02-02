@@ -14,17 +14,35 @@ namespace Turnbased_RPG_ConsoleApp
         public struct Encounter
         {
             public int index;
-            public List<Enemy> enemies;
+
+            [Newtonsoft.Json.JsonIgnore] public List<Enemy> enemies;
+            public List<Enemy.Stats> enemyStats;
+            /*[Newtonsoft.Json.JsonProperty]
+            List<string> enemyNames;*/
             public int numOfEnemies;
 
             public bool isFixedEncounter;
             public bool canRepeat;
             public bool hasBeenBeaten;
 
-            public Encounter(int i, int numOfE = -1, bool ife = true, bool cr = false, params Enemy[] enemiesToAdd)
+            public Encounter(int idx, int numOfE = -1, bool ife = true, bool cr = false, params Enemy[] enemiesToAdd)
             {
-                index = i;
+                index = idx;
+
                 enemies = enemiesToAdd.ToList();
+                enemyStats = new List<Enemy.Stats>();
+                for (int i = 0; i < enemies.Count; i++)
+                {
+                    enemyStats.Add(enemies[i].GetStats());
+                }
+
+
+                /*enemyNames = new List<string>();
+                foreach (var e in enemies)
+                {
+                    enemyNames.Add(e.name);
+                }*/
+
                 numOfE = enemies.Count;
                 numOfEnemies = enemies.Count;
                 isFixedEncounter = ife;
@@ -32,16 +50,55 @@ namespace Turnbased_RPG_ConsoleApp
                 hasBeenBeaten = false;
 
             }
-            public Encounter(int i, List<Enemy> enemiesToAdd, int numOfE = -1, bool ife = false, bool cr = false)
+            public Encounter(int idx, List<Enemy> enemiesToAdd, int numOfE = -1, bool ife = false, bool cr = false)
             {
-                index = i;
+                index = idx;
                 enemies = enemiesToAdd;
+                enemyStats = new List<Enemy.Stats>();
+                for (int i = 0; i < enemies.Count; i++)
+                {
+                    enemyStats.Add(enemies[i].GetStats());
+                }
+
+                /*enemyNames = new List<string>();
+                foreach (var e in enemies)
+                {
+                    enemyNames.Add(e.name);
+                }*/
+
                 if (numOfE <= 0)
                     numOfE = enemies.Count;
                 numOfEnemies = numOfE;
                 isFixedEncounter = ife;
                 canRepeat = cr;
                 hasBeenBeaten = false;
+            }
+            //Newtonsoft Json JsonConstructor
+            public Encounter(Encounter encounter)
+            {
+                //Json Constructor executes before loading so this code initially failed //Constructor now called in Area.GenerateEncounter
+                index = encounter.index;
+
+                enemies = encounter.enemies;
+                enemyStats = encounter.enemyStats;
+
+                if ((enemies == null || enemies.Count == 0) && enemyStats != null)
+                {
+                    enemies = new List<Enemy>();
+                    for (int i = 0; i < enemyStats.Count; i++)
+                    {
+                        enemies.Add(new Enemy(enemyStats[i]));
+                    }
+                }
+
+                if (enemies != null)
+                    numOfEnemies = enemies.Count;
+                else
+                    numOfEnemies = 0;
+                isFixedEncounter = encounter.isFixedEncounter;
+                canRepeat = encounter.canRepeat;
+                hasBeenBeaten = encounter.hasBeenBeaten;
+
             }
         }
 
@@ -129,7 +186,7 @@ namespace Turnbased_RPG_ConsoleApp
 
             enemyList.Add(new Enemy("Plugry", lv: 1, elmt: Element.ELECTRIC, mhp: 18, mcp: 12, atk: 3, def: 0, spAtk: 8, spd: 2, exp: 10, new List<SkillBase>()
             {
-                //SkillManager.Fireball,
+                SkillManager.Charge_Bolt,
                 SkillManager.Waste_Short_Circut
             }));
         }

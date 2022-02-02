@@ -16,11 +16,11 @@ namespace Turnbased_RPG_ConsoleApp
             Console.ForegroundColor = ConsoleColor.Magenta;
             print(target.name + " felt the effects of the poison"); ;
             Console.ForegroundColor = ConsoleColor.White;
-            
-            var baseDamage = (target.maxHp / 10f);
-            target.ModifyHealth( -(int)(baseDamage + RandomInt(-(int)(baseDamage / 5).Clamp(2, 10), (int)(baseDamage / 5).Clamp(2, 10) )).Clamp(1, float.MaxValue), atkElmt: Element.IGNORE_ALL);
 
-        }, "{0} recovered from the poison");
+            var baseDamage = (target.maxHp / 10f);
+            target.ModifyHealth(-(int)(baseDamage + RandomInt(-(int)(baseDamage / 5).Clamp(2, 10), (int)(baseDamage / 5).Clamp(2, 10))).Clamp(1, float.MaxValue), atkElmt: Element.IGNORE_ALL);
+
+        }, "{0} got poisoned", "{0} recovered from the poison");
 
         static Type flaming = new Type("FLAMING", 1, 4, (target) =>
         {
@@ -29,8 +29,8 @@ namespace Turnbased_RPG_ConsoleApp
             Console.ForegroundColor = ConsoleColor.White;
 
             var baseDamage = (target.maxHp / 3f).Clamp(1, 40);
-            target.ModifyHealth( -(int)(baseDamage + RandomInt(-(int)(baseDamage / 5).Clamp(2, 10), (int)(baseDamage / 5).Clamp(2, 10) )), atkElmt: Element.FIRE);
-        }, "{0} is no longer on fire");
+            target.ModifyHealth(-(int)(baseDamage + RandomInt(-(int)(baseDamage / 5).Clamp(2, 10), (int)(baseDamage / 5).Clamp(2, 10))), atkElmt: Element.FIRE);
+        }, "{0} got set on fire", "{0} is no longer on fire");
 
         static Type sleeping = new Type("SLEEPING", 2, 4, (target) =>
         {
@@ -40,7 +40,7 @@ namespace Turnbased_RPG_ConsoleApp
 
             target.nextAction = SkillManager.Sleep;
             target.targets.Clear();
-        }, "{0} woke up");
+        }, "{0} got put in a deep sleep", "{0} woke up");
 
         static Type paralyzed = new Type("PARALYZED", 7, 12, (target) =>
         {
@@ -53,7 +53,7 @@ namespace Turnbased_RPG_ConsoleApp
                 target.nextAction = SkillManager.Immobile;
                 target.targets.Clear();
             }
-        }, "{0} is free of the paralysis");
+        }, "{0} got paralyzed", "{0} is free of the paralysis");
 
         static Type confused = new Type("CONFUSED", 2, 5, (target) =>
         {
@@ -86,7 +86,7 @@ namespace Turnbased_RPG_ConsoleApp
                 target.targets.Clear();
             }
 
-        }, "{0} came to their senses");
+        },"{0} got confused", "{0} came to their senses");//change name to delusional?
 
 
         //public static Type NONE { get { return none; } }
@@ -96,6 +96,7 @@ namespace Turnbased_RPG_ConsoleApp
         public static Type PARALYZED { get { return paralyzed; } }
         public static Type CONFUSED { get { return confused; } }
 
+        [Serializable]
         public class Type : Basic
         {
             public string name;
@@ -107,9 +108,10 @@ namespace Turnbased_RPG_ConsoleApp
             int turnLimit;
             public int turnsActive = 0;
 
+            string inflictText = "{0} isn't feeling well";
             string removeText = "{0} went back to normal";
 
-            public Type(string n, int minPT, int maxPT, Action<Actor> action, string rtext = "{0} went back to normal")
+            public Type(string n, int minPT, int maxPT, Action<Actor> action, string iText = "{0} isn't feeling well", string rtext = "{0} went back to normal")
             {
                 name = n;
                 turnAction = action;
@@ -120,6 +122,7 @@ namespace Turnbased_RPG_ConsoleApp
                 minPossibleTurns = minPT;
                 maxPossibleTurns = maxPT;
 
+                inflictText = iText;
                 removeText = rtext;
             }
             public Type(Type dupe)
@@ -134,7 +137,7 @@ namespace Turnbased_RPG_ConsoleApp
             }
 
 
-            public bool TryInflict(Actor target, int duration = -1)
+            public bool TryInflict(Actor target, int duration = -1, bool showInflictText = true)
             {
                 Thread.Sleep(TimeSpan.FromSeconds(0.01));//For randomizing
                 target.statusEffects.RemoveAll((m) => m == null);
@@ -151,6 +154,13 @@ namespace Turnbased_RPG_ConsoleApp
                         dupe.turnLimit = RandomInt(minPossibleTurns, maxPossibleTurns);
                     else
                         dupe.turnLimit = duration;
+
+                    if (showInflictText)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Magenta;
+                        print(string.Format(inflictText, target.name));
+                        Console.ForegroundColor = ConsoleColor.White;
+                    }
                 }
                 else if (alreadyInflicted)
                     print(target.name + " is already " + name.ToLower());

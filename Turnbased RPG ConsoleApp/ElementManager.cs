@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,7 +9,7 @@ namespace Turnbased_RPG_ConsoleApp
 {
     public static class Element
     {
-        static Type ignore_all = new Type();
+        static Type omni = new Type();
         static Type none = new Type();
 
         static Type fire = new Type();
@@ -17,16 +18,29 @@ namespace Turnbased_RPG_ConsoleApp
 
         static Type ground = new Type();
         static Type air = new Type();
-        static Type electic = new Type();
+        static Type electric = new Type();
 
-        public static Type IGNORE_ALL { get { return ignore_all; } }
+        public static Type IGNORE_ALL { get { return omni; } }
         public static Type NONE { get { return none; } }
         public static Type FIRE { get { return fire; } }
         public static Type WATER { get { return water; } }
         public static Type PLANT { get { return plant; } }
         public static Type GROUND { get { return ground; } }
         public static Type AIR { get { return air; } }
-        public static Type ELECTRIC { get { return electic; } }
+        public static Type ELECTRIC { get { return electric; } }
+
+
+        public static Type GetElementByName(string name)
+        {
+            var field = typeof(Element).GetField(name.ToLower(), BindingFlags.NonPublic | BindingFlags.Static);
+
+            if (field.GetValue(null) is Type)
+            {
+                //Basic.print((field.GetValue(null) as Type).nameFromEnum.ToString());
+                return field.GetValue(null) as Type;
+            }
+            return null;
+        }
 
         public static float CheckAttackAgainst(Type attackType, Actor target)
         {
@@ -44,7 +58,7 @@ namespace Turnbased_RPG_ConsoleApp
 
         public static void ConstructAllElements()
         {
-            ignore_all.nameFromEnum = Type.Name.OMNI;
+            omni.nameFromEnum = Type.Name.OMNI;
 
             #region NONE
             none.nameFromEnum = Type.Name.NONE;
@@ -85,7 +99,7 @@ namespace Turnbased_RPG_ConsoleApp
             #region GROUND
             ground.nameFromEnum = Type.Name.GROUND;
             ground.effectiveAgainst.Add(fire);
-            ground.effectiveAgainst.Add(electic);
+            ground.effectiveAgainst.Add(electric);
             ground.ineffectiveAgainst.Add(water);
             ground.uselessAgainst.Add(air);
             //Neutral against plant and self
@@ -94,18 +108,18 @@ namespace Turnbased_RPG_ConsoleApp
             #region AIR
             air.nameFromEnum = Type.Name.AIR;
             air.effectiveAgainst.Add(fire);
-            air.ineffectiveAgainst.Add(electic);
+            air.ineffectiveAgainst.Add(electric);
             //air.uselessAgainst.Add();
             //Neutral against water, plant, ground, and self
             #endregion
 
             #region ELECTRIC
-            electic.nameFromEnum = Type.Name.ELECTRIC;
-            electic.effectiveAgainst.Add(air);
-            electic.effectiveAgainst.Add(water);
-            electic.ineffectiveAgainst.Add(plant);
-            electic.ineffectiveAgainst.Add(fire);
-            electic.uselessAgainst.Add(ground);
+            electric.nameFromEnum = Type.Name.ELECTRIC;
+            electric.effectiveAgainst.Add(air);
+            electric.effectiveAgainst.Add(water);
+            electric.ineffectiveAgainst.Add(plant);
+            electric.ineffectiveAgainst.Add(fire);
+            electric.uselessAgainst.Add(ground);
             //Neutral against self
             #endregion
         }

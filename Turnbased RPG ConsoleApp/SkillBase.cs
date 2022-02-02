@@ -18,6 +18,15 @@ namespace Turnbased_RPG_ConsoleApp
 
         public int skillCost = 0;
 
+        public void TryGetSkill(string name)//called from SkillManager.GetSkillByName
+        {
+            if (name == skillName)
+            {
+                SkillManager.requestedSkill = this;
+                return;
+            }
+        }
+
         public enum SkillType
         {
             DAMAGING, INFLICTING, HEALING, CURING, REVIVAL
@@ -46,6 +55,8 @@ namespace Turnbased_RPG_ConsoleApp
             element = elmt;
 
             skillType = SkillType.DAMAGING;
+
+            SkillManager.callForSkill += TryGetSkill;//get skill by name without exact without using reflections
         }
     }
 

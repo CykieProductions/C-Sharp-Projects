@@ -6,10 +6,44 @@ using System.Threading;
 
 namespace Turnbased_RPG_ConsoleApp
 {
-    class Program : Basic
+    public class Program : Basic
     {
+        public static void SaveAllData(int slotNum, Hero[] allHeroes)
+        {
+            for (int i = 0; i < allHeroes.Length; i++)
+            {
+                SaveLoad.Save(allHeroes[i].GetStats(), slotNum, $"{allHeroes[i].name} Stats");
+            }
+
+            //SaveLoad.Save(WorldManager.curArea.encounters[0], slotNum, "Encounter Test");
+            SaveLoad.Save(new Tuple<WorldManager.Area, int> (WorldManager.curArea, WorldManager.areaProgress), slotNum, "Current Area");
+
+            WorldManager.visitedAreas[WorldManager.visitedAreas.FindIndex(x => x.name == WorldManager.curArea.name)] = WorldManager.curArea;//match the data
+            SaveLoad.Save(WorldManager.visitedAreas, slotNum, "Visited Areas");
+
+            //SaveLoad.Save(Tuple<string,> WorldManager.visitedAreas, slotNum, "Area Info");
+        }
+        public static void LoadAllData(int slotNum, Hero[] allHeroes)
+        {
+            for (int i = 0; i < allHeroes.Length; i++)
+            {
+                if (SaveLoad.SaveExists(slotNum, $"{allHeroes[i].name} stats"))
+                {
+                    allHeroes[i].LoadStats( SaveLoad.Load<Hero.Stats>(slotNum, $"{allHeroes[i].name} Stats") );
+                }
+            }
+
+            Tuple<WorldManager.Area, int> loadedArea = SaveLoad.Load<Tuple<WorldManager.Area, int>>(slotNum, "Current Area");
+            WorldManager.curArea = loadedArea.Item1;
+            WorldManager.areaProgress = loadedArea.Item2;
+
+            var visitedAreas = WorldManager.visitedAreas = SaveLoad.Load<List<WorldManager.Area>>(slotNum, "Visited Areas");
+        }
+
         static void Main(string[] args)
         {
+            SaveLoad.InitializeDataPath();
+
             string input = "";
             bool choseTurnAction = false;
 
@@ -21,24 +55,55 @@ namespace Turnbased_RPG_ConsoleApp
             Element.ConstructAllElements();
             EnemyManager.ConstructAllEnemies();
 
+            Hero[] allHeroes = new Hero[]
+            {
+                new Hero("Cyclone", 1, Element.NONE, mhp: 28, mcp: 16, atk: 5, def: 1, spAtk: 1, spd: 2, inxp: 4, growthScalar: 1.75f, skillDict: new Dictionary<int, SkillBase>()
+                {
+                    [2] = SkillManager.Healing_Powder,
+                    [4] = SkillManager.Wind_Slash,
+                    [6] = SkillManager.Curing_Powder,
+                    [10] = SkillManager.Poison_Powder,
+
+                    [11] = SkillManager.Slash_Storm,
+                    [12] = SkillManager.Super_Healing_Powder,
+                    [14] = SkillManager.Charge_Bolt,
+                    [15] = SkillManager.Curing_Cloud,
+
+                    [17] = SkillManager.Air_Cannon,
+                    [18] = SkillManager.Pheonix_Powder,
+                    [20] = SkillManager.Sky_Crusher,
+
+                    [22] = SkillManager.Healing_Cloud,
+                    [25] = SkillManager.Poison_Cloud,
+                    [30] = SkillManager.Ultra_Healing_Powder,
+                    [32] = SkillManager.Sonic_Boom,
+                    [38] = SkillManager.Hurricane,
+                    [40] = SkillManager.Ultra_Healing_Cloud,
+                }),
+                new Hero("Foo", 1, Element.NONE, mhp: 12, mcp: 20, atk: 3, def: 0, spd: 0, inxp: 3, growthScalar: 3.2f, skillDict: new Dictionary<int, SkillBase>()
+                {
+                    [3] = SkillManager.Fireball,
+                    [7] = SkillManager.Healing_Powder,
+                    [12] = SkillManager.Flare_Fall,
+                    [16] = SkillManager.Flame_Burst,
+                    [25] = SkillManager.Blazing_Vortex,
+                    [34] = SkillManager.Eruption,
+                    [42] = SkillManager.Supernova,
+                })
+            };
+
 
             List<Hero> heroes = new List<Hero>();
-            heroes.Add(new Hero("Cyclone", 1, Element.NONE, mhp: 28, mcp: 16, def: 1, inxp: 4, skillDict: new Dictionary<int, SkillBase>()
-            {
-                [2] = SkillManager.Healing_Powder,
-                [4] = SkillManager.Curing_Powder,
-                [10] = SkillManager.Poision_Powder,
-                [12] = SkillManager.Super_Healing_Powder,
-                [15] = SkillManager.Curing_Cloud,
-
-                [18] = SkillManager.Pheonix_Powder,
-
-                [22] = SkillManager.Healing_Cloud,
-                [25] = SkillManager.Poision_Cloud,
-                [30] = SkillManager.Ultra_Healing_Powder,
-                [40] = SkillManager.Ultra_Healing_Cloud,
-            }));
+            heroes.Add(allHeroes[0]);
+            heroes.Add(allHeroes[1]);
+            heroes[1].skills.Add(SkillManager.Restore_CP_Allies_Test);
             heroes[0].skills.Add(SkillManager.Scan_Lash);
+            heroes[0].skills.Add(SkillManager.Pebble_Blast);
+            heroes[0].skills.Add(SkillManager.Rock_Slide);
+            heroes[0].skills.Add(SkillManager.Spire_Wall);
+            heroes[0].skills.Add(SkillManager.Earthquake);
+            heroes[0].skills.Add(SkillManager.Flame_Burst);
+            heroes[0].skills.Add(SkillManager.Eruption);
 
             //heroes.Add(new Hero("Shady", 1, Element.PLANT, 30, 9, 6, spd: 1));
             /*heroes.Add(new Hero("Foo", 1, Element.NONE, 12, 20, 3, spd: 0, inxp: 3, growthScalar: 3.2f, skillDict: new Dictionary<int, SkillBase>()
@@ -291,132 +356,240 @@ namespace Turnbased_RPG_ConsoleApp
                     return result;
                 }
 
+                bool Warp()
+                {
+                    print("Which area?");
+                    for (int i = 0; i < WorldManager.visitedAreas.Count; i++)
+                    {
+                        print((i + 1) + ". " + WorldManager.visitedAreas[i].name + "  ", true);
+                        if (i != 0 && i % 3 == 0)
+                            print("");
+                    }
+                    print("");
+
+                    input = Console.ReadLine();
+                    WorldManager.Area targetArea = null;
+                    if (int.TryParse(input, out int num) && num >= 1 && num <= WorldManager.visitedAreas.Count)
+                    {
+                        targetArea = WorldManager.visitedAreas[num - 1];
+                    }
+                    else
+                        return false;//continue;
+
+                    bool areaHasActiveCheckpoints = false;
+                    if (targetArea.checkpoints != null)
+                    {
+                        for (int i = 0; i < targetArea.checkpoints.Length; i++)
+                        {
+                            if (targetArea.checkpoints[i].isActive)
+                            {
+                                areaHasActiveCheckpoints = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (targetArea.checkpoints != null && areaHasActiveCheckpoints)
+                    {
+                        print("Which checkpoint in " + targetArea.name + "?");
+                        print(0 + ". Beginning  ", true);
+                        for (int i = 0; i < targetArea.checkpoints.Length; i++)
+                        {
+                            if (targetArea.checkpoints[i].isActive)
+                                print((i + 1) + ". " + targetArea.checkpoints[i].name + "  ", true);
+                        }
+                        print("");
+
+                        input = Console.ReadLine();
+                        print("");
+                        if (int.TryParse(input, out num) && num >= 0 && num <= targetArea.checkpoints.Length && num > 0 && targetArea.checkpoints[num - 1].isActive)//check if checkpoint num is valid
+                        {
+                            WorldManager.Travel(targetArea.name, heroes, num - 1);
+                        }
+                        else if (int.TryParse(input, out num) && num == 0)//to beginning of area
+                            WorldManager.Travel(targetArea.name, heroes);
+                        else
+                            return false;//continue;
+                    }
+                    else
+                        WorldManager.Travel(targetArea.name, heroes, -1);
+
+                    return true;
+                }
+
                 #region OVERWORLD LOGIC
                 while (!isInBattle && gameIsRunning)//Overworld Logic
                 {
                     /*Console.ForegroundColor = ConsoleColor.Black;
                     Console.BackgroundColor = ConsoleColor.White;*/
                     print($"Location: {WorldManager.curArea.name} | Battles left: {WorldManager.curArea.encounters.Count - WorldManager.areaProgress}");
-                    print("1. NEXT BATTLE  2. CONRA  3. STATS  4. QUIT\t");
+                    print("1. NEXT BATTLE  2. CONRA  3. STATS  4. WARP  S. SAVE  L. LOAD  Q. QUIT\t");
                     /*Console.ForegroundColor = ConsoleColor.White;
                     Console.BackgroundColor = ConsoleColor.Black;*/
 
                     input = Console.ReadLine();
-                    if (!int.TryParse(input, out int num))
-                        continue;
                     print("");
-
-                    switch (num)
+                    if (int.TryParse(input, out int num))
                     {
-                        case 1://Start Battle Logic
-                            isInBattle = true;
+                        switch (num)
+                        {
+                            case 1:
+                                #region Start Battle
+                                isInBattle = true;
 
-                            //Add the enemies
-                            {
-                                enemies = new List<Enemy>(WorldManager.curArea.GenerateEncounter(WorldManager.areaProgress));//modifying the enemies list will no longer affect the WorldManager
-
-                                /*var playerParty = heroes.ToList<Actor>();
-                                //enemies.Add(EnemyManager.GetEnemy("Flarix", playerParty));
-                                if(heroes[0].level>2)
-                                    enemies.Add(EnemyManager.GetEnemy("Growfa", playerParty, 50));
-                                else
-                                    enemies.Add(EnemyManager.GetEnemy("Growfa", playerParty));
-                                /*enemies.Add(new Enemy("Ethra", 1, Element.AIR, mhp: 10));
-                                enemies.Add(new Enemy("Vinerlily", 1, Element.PLANT, mhp: 10));
-                                enemies.Add(new Enemy("Terradon", 1, Element.GROUND, mhp: 10));*/
-                                //enemies.Add(new Enemy("Warvy", 1, Element.WATER, mhp: 10));
-                            }
-
-                            //Alter enemy names if needed
-                            {
-                                List<string> names = new List<string>();
-                                for (int i = 0; i < enemies.Count; i++)
+                                //Add the enemies
                                 {
-                                    if (names.Contains(enemies[i].name + " (E)"))
-                                        enemies[i].name += " (id: " + (i + 1) + ")";
-                                    else if (names.Contains(enemies[i].name + " (D)"))
-                                        enemies[i].name += " (E)";
-                                    else if (names.Contains(enemies[i].name + " (C)"))
-                                        enemies[i].name += " (D)";
-                                    else if (names.Contains(enemies[i].name + " (B)"))
-                                        enemies[i].name += " (C)";
-                                    else if (names.Contains(enemies[i].name))
-                                        enemies[i].name += " (B)";
+                                    enemies = new List<Enemy>(WorldManager.curArea.GenerateEncounter(WorldManager.areaProgress));//modifying the enemies list will no longer affect the WorldManager
 
-                                    names.Add(enemies[i].name);
+                                    /*var playerParty = heroes.ToList<Actor>();
+                                    //enemies.Add(EnemyManager.GetEnemy("Flarix", playerParty));
+                                    if(heroes[0].level>2)
+                                        enemies.Add(EnemyManager.GetEnemy("Growfa", playerParty, 50));
+                                    else
+                                        enemies.Add(EnemyManager.GetEnemy("Growfa", playerParty));
+                                    /*enemies.Add(new Enemy("Ethra", 1, Element.AIR, mhp: 10));
+                                    enemies.Add(new Enemy("Vinerlily", 1, Element.PLANT, mhp: 10));
+                                    enemies.Add(new Enemy("Terradon", 1, Element.GROUND, mhp: 10));*/
+                                    //enemies.Add(new Enemy("Warvy", 1, Element.WATER, mhp: 10));
                                 }
-                                for (int i = 0; i < enemies.Count; i++)
+
+                                //Alter enemy names if needed
                                 {
-                                    if (names.Contains(enemies[i].name + " (B)"))
-                                        enemies[i].name += " (A)";
+                                    List<string> names = new List<string>();
+                                    for (int i = 0; i < enemies.Count; i++)
+                                    {
+                                        if (names.Contains(enemies[i].name + " (E)"))
+                                            enemies[i].name += " (id: " + (i + 1) + ")";
+                                        else if (names.Contains(enemies[i].name + " (D)"))
+                                            enemies[i].name += " (E)";
+                                        else if (names.Contains(enemies[i].name + " (C)"))
+                                            enemies[i].name += " (D)";
+                                        else if (names.Contains(enemies[i].name + " (B)"))
+                                            enemies[i].name += " (C)";
+                                        else if (names.Contains(enemies[i].name))
+                                            enemies[i].name += " (B)";
+
+                                        names.Add(enemies[i].name);
+                                    }
+                                    for (int i = 0; i < enemies.Count; i++)
+                                    {
+                                        if (names.Contains(enemies[i].name + " (B)"))
+                                            enemies[i].name += " (A)";
+                                    }
                                 }
-                            }
-                            
-                            print("You encountered " + enemies[0].name, true);
-                            if (enemies.Count > 1)
-                                print(" and its cohorts", true);
-                            print("");
-                            break;
 
-                        case 2://skill menu
-                            print("Which party member?");
-                            for (int i = 0; i < heroes.Count; i++)
-                            {
-                                print((i + 1) + ". " + heroes[i].name + "  ", true);
-                            }
-                            print("");
+                                print("You encountered " + enemies[0].name, true);
+                                if (enemies.Count > 1)
+                                    print(" and its cohorts", true);
+                                print("");
+                                break;
+                            #endregion
+                            case 2:
+                                #region Skill Menu
+                                print("Which party member?");
+                                for (int i = 0; i < heroes.Count; i++)
+                                {
+                                    print((i + 1) + ". " + heroes[i].name + "  ", true);
+                                }
+                                print("");
 
-                            input = Console.ReadLine();
-                            if (!int.TryParse(input, out num) || (int.TryParse(input, out num) && (num == 0 || num > heroes.Count)))
-                            {
-                                print("Back\n");
+                                input = Console.ReadLine();
+                                if (!int.TryParse(input, out num) || (int.TryParse(input, out num) && (num == 0 || num > heroes.Count)))
+                                {
+                                    print("Back\n");
+                                    continue;
+                                }
+
+                                print("");
+                                Hero hero = heroes[num - 1];
+                                List<SkillBase> overworldSkills = new List<SkillBase>();
+                                for (int i = 0; i < hero.skills.Count; i++)
+                                {
+                                    //print(hero.skills[i].skillType.ToString());
+                                    if (hero.skills[i].skillType != SkillBase.SkillType.DAMAGING && hero.skills[i].skillType != SkillBase.SkillType.INFLICTING)
+                                        overworldSkills.Add(hero.skills[i]);
+                                }
+                                hero.targets.Clear();
+                                hero.nextAction = null;
+                                overworldSkills = hero.GetSortedSkills(overworldSkills);
+                                DisplaySkillMenu(hero, overworldSkills);
+                                print("");
+                                break;
+                            #endregion
+                            case 3:
+                                #region Stats Menu
+                                print("Which party member?");
+                                for (int i = 0; i < heroes.Count; i++)
+                                {
+                                    print((i + 1) + ". " + heroes[i].name + "  ", true);
+                                }
+                                print("");
+
+                                input = Console.ReadLine();
+                                if (!int.TryParse(input, out num) || (int.TryParse(input, out num) && (num == 0 || num > heroes.Count)))
+                                {
+                                    print("Back\n");
+                                    continue;
+                                }
+
+                                print("");
+                                heroes[num - 1].DisplayStatus();
+                                print("");
+                                break;
+                            #endregion
+                            case 4:
+                                #region Warping
+                                Warp();
+                                break;
+                                #endregion
+                            default:
                                 continue;
-                            }
+                                //break;
+                        }
+                    }
+                    else
+                    {
+                        switch(input.ToLower())
+                        {
+                            case "s":
+                                print("Save to which slot?");
+                                var slots = SaveLoad.GetUsedSaveSlots();
+                                for (int i = 1; i <= SaveLoad.maxSaveSlots; i++)
+                                {
+                                    if (i - 1 > 0 && (i - 1) % 3 == 0)
+                                        print("");
 
-                            print("");
-                            Hero hero = heroes[num - 1];
-                            List<SkillBase> overworldSkills = new List<SkillBase>();
-                            for (int i = 0; i < hero.skills.Count; i++)
-                            {
-                                //print(hero.skills[i].skillType.ToString());
-                                if (hero.skills[i].skillType != SkillBase.SkillType.DAMAGING && hero.skills[i].skillType != SkillBase.SkillType.INFLICTING)
-                                    overworldSkills.Add(hero.skills[i]);
-                            }
-                            hero.targets.Clear();
-                            hero.nextAction = null;
-                            overworldSkills = hero.GetSortSkills(overworldSkills);
-                            DisplaySkillMenu(hero, overworldSkills);
-                            print("");
+                                    if (slots.Contains(i))
+                                        Console.Write("Slot {0, -3}\t", i);//print(/*i + ". */"Slot " + i + "\t", true);
+                                    else
+                                        print(/*i + ". */"Slot " + i + "(E)\t", true);
+                                }
 
-                            break;
+                                print("");
+                                input = Console.ReadLine();
+                                if (int.TryParse(input, out num))
+                                    SaveAllData(num, allHeroes);
+                                break;
 
-                        case 3:
-                            print("Which party member?");
-                            for (int i = 0; i < heroes.Count; i++)
-                            {
-                                print( (i + 1) + ". " + heroes[i].name + "  ", true);
-                            }
-                            print("");
+                            case "l":
+                                print("Load to which slot?");
+                                slots = SaveLoad.GetUsedSaveSlots();
+                                for (int i = 0; i < slots.Count; i++)
+                                {
+                                    if (i - 1 > 0 && (i - 1) % 3 == 0)
+                                        print("");
+                                    print(/*slots[i] + ". */"Slot " + slots[i] + "\t", true);
+                                }
+                                
+                                print("");
+                                input = Console.ReadLine();
+                                if (int.TryParse(input, out num) && slots.Contains(num))
+                                    LoadAllData(num, allHeroes);
+                                break;
 
-                            input = Console.ReadLine();
-                            if (!int.TryParse(input, out num) || (int.TryParse(input, out num) && (num == 0 || num > heroes.Count)))
-                            {
-                                print("Back\n");
-                                continue;
-                            }
-
-                            print("");
-                            heroes[num - 1].DisplayStatus();
-                            print("");
-
-                            break;
-
-                        case 4:
-                            gameIsRunning = false;
-                            break;
-                        default:
-                            continue;
-                            //break;
+                            case "q":
+                                gameIsRunning = false;
+                                break;
+                        }
                     }
                 }
                 #endregion
@@ -434,7 +607,7 @@ namespace Turnbased_RPG_ConsoleApp
                         {
                             heroes[h].isDefeated = false;
                             activeHeroes.Add(heroes[h]);
-                            heroes[h].skills = heroes[h].GetSortSkills(); ;
+                            heroes[h].skills = heroes[h].GetSortedSkills(); ;
                         }
                         else if (!heroes[h].isDefeated)
                         {
@@ -531,7 +704,7 @@ namespace Turnbased_RPG_ConsoleApp
                                     i = heroes.Count - 1;
                                     isInBattle = false;
                                     choseTurnAction = true;
-                                    WorldManager.FinishedBattle(true);
+                                    WorldManager.FinishedBattle(heroes, true);
                                 }
                             }
 
@@ -798,7 +971,7 @@ namespace Turnbased_RPG_ConsoleApp
 
                             isInBattle = false;
                             totalExpFromBattle = 0;
-                            WorldManager.FinishedBattle();
+                            WorldManager.FinishedBattle(heroes);
                         }
                         //Check if player lost
                         else
@@ -818,9 +991,27 @@ namespace Turnbased_RPG_ConsoleApp
                                     Console.ForegroundColor = ConsoleColor.Red;
                                     print("YOU LOST");
                                     Console.ForegroundColor = ConsoleColor.White;
+
                                     isInBattle = false;
-                                    gameIsRunning = false;
                                     totalExpFromBattle = 0;
+
+                                    bool madeChoice = false;
+                                    while (!madeChoice)
+                                    {
+                                        print("\n1. Warp to checkpoint  2. Quit");
+                                        input = Console.ReadLine();
+                                        if (int.TryParse(input, out int num))
+                                        {
+                                            if (num == 1)
+                                                madeChoice = Warp();
+                                            else
+                                            {
+                                                gameIsRunning = false;
+                                                madeChoice = true;
+                                            }
+                                        }
+                                    }
+
                                 }
                             }
                         }

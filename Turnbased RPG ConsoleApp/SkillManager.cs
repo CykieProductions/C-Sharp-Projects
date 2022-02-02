@@ -1,13 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
-using System.Threading.Tasks;
+using System.Threading;
+using static Turnbased_RPG_ConsoleApp.Basic;
 
 namespace Turnbased_RPG_ConsoleApp
 {
-    class SkillManager : Basic
+    public static class SkillManager
     {
+        public static Action<string> callForSkill;
+        public static SkillBase requestedSkill;
+
         public static Skill<Actor> Skip_Turn;
         public static Skill<Actor> Sleep;
         public static Skill<Actor> Immobile;
@@ -16,8 +21,8 @@ namespace Turnbased_RPG_ConsoleApp
         public static Skill<Actor> Waste_Jumping;
 
 
-        public static Skill<Actor, Actor> Poision_Powder;
-        public static Skill<Actor, List<Actor>> Poision_Cloud;
+        public static Skill<Actor, Actor> Poison_Powder;
+        public static Skill<Actor, List<Actor>> Poison_Cloud;
 
         //Testing
         public static Skill<Actor, List<Actor>> Damage_Allies_Test;
@@ -87,6 +92,30 @@ namespace Turnbased_RPG_ConsoleApp
         public static Skill<Actor, List<Actor>> Pheonix_Cloud;
 
 
+        public static SkillBase GetSkillByName(string name)
+        {
+            callForSkill.Invoke(name);
+            var skill = requestedSkill;
+
+            if (skill == null)//use reflections as back up
+            {
+                name = name.Replace(' ', '_');
+                var field = typeof(SkillManager).GetField(name, BindingFlags.Public | BindingFlags.Static);
+
+                if (field.GetValue(null) is SkillBase)
+                {
+                    //print((field.GetValue(null) as SkillBase).skillName);
+                    return field.GetValue(null) as SkillBase;
+                }
+                return null;
+            }
+            else
+            {
+                requestedSkill = null;
+                return skill;
+            }
+        }
+
         public static void ConstructAllSkills()
         {
             int SpecialAttackFormula(Actor user, int rank = 1, int baseValue = 32, float scalar = 0.36f, bool varyDamage = true)
@@ -100,13 +129,17 @@ namespace Turnbased_RPG_ConsoleApp
                     amount += RandomInt(-(int)(amount * 0.1f), (int)(amount * 0.1f));
                 return amount;
             }
-            int AttackFormula(Actor user, int rank = 1, float fluxPercent = 0.1f, int fluxMin = 2)
+            int BasicAttackFormula(Actor user, int rank = 1, float fluxPercent = 0.1f, int fluxMin = 2)
             {
                 float rankDamper = 2f;
 
                 //print((rank * rankDamper).Clamp(1, 50));
-                int damage = (int)( user.attack + (1.25f * Math.Sqrt(user.level * 0.75f).Clamp(1, 100)) * Math.Pow(rank, rankDamper).Clamp(1, 50) );
+                int damage = (int)( (user.attack * Math.Sqrt(rank).Clamp(1, float.MaxValue)) + (1.25f * Math.Sqrt(user.level * 0.75f).Clamp(1, 100)) * Math.Pow(rank, rankDamper).Clamp(1, 50) );
                 damage += RandomInt(-(int)(damage * fluxPercent).Clamp(fluxMin, float.MaxValue), (int)(damage * fluxPercent).Clamp(fluxMin, float.MaxValue));
+
+                if (rank >= 3)
+                    damage += (int)(user.attack * Math.Sqrt(rank).Clamp(1, float.MaxValue));
+
                 return damage;
             }
 
@@ -214,8 +247,7 @@ namespace Turnbased_RPG_ConsoleApp
                         if (Chance(3, 3))
                         {
                             Console.ForegroundColor = ConsoleColor.Magenta;
-                            if (StatusEffect.POISONED.TryInflict(target))
-                                print($"{target.name} got poisoned");
+                            StatusEffect.POISONED.TryInflict(target);
                             Console.ForegroundColor = ConsoleColor.White;
                         }
                     }
@@ -241,8 +273,7 @@ namespace Turnbased_RPG_ConsoleApp
                         if (Chance(3, 3))
                         {
                             Console.ForegroundColor = ConsoleColor.Magenta;
-                            if (StatusEffect.FLAMING.TryInflict(target))
-                                print($"{target.name} got set on fire");
+                            StatusEffect.FLAMING.TryInflict(target);
                             Console.ForegroundColor = ConsoleColor.White;
                         }
                     }
@@ -274,9 +305,9 @@ namespace Turnbased_RPG_ConsoleApp
             #endregion
 
             #region STATUS EFFECT GIVING
-            Poision_Powder = new Skill<Actor, Actor>("Poison Powder", (user, target) =>
+            Poison_Powder = new Skill<Actor, Actor>("Poison Powder", (user, target) =>
             {
-                var curSkill = Poision_Powder;
+                var curSkill = Poison_Powder;
                 if (user.cp >= curSkill.skillCost)
                 {
                     print($"{user.name} produced {curSkill.skillName}");
@@ -287,8 +318,7 @@ namespace Turnbased_RPG_ConsoleApp
                     if (Chance(3, 3))
                     {
                         Console.ForegroundColor = ConsoleColor.Magenta;
-                        if (StatusEffect.POISONED.TryInflict(target))
-                            print($"{target.name} got poisoned");
+                        StatusEffect.POISONED.TryInflict(target);
                         Console.ForegroundColor = ConsoleColor.White;
                     }
 
@@ -299,9 +329,9 @@ namespace Turnbased_RPG_ConsoleApp
             }
             , 5, SkillBase.TargetType.TARGET_SINGLE_OPPONENT, Element.PLANT, SkillBase.SkillType.INFLICTING);
 
-            Poision_Cloud = new Skill<Actor, List<Actor>>("Poison Cloud", (user, targets) =>
+            Poison_Cloud = new Skill<Actor, List<Actor>>("Poison Cloud", (user, targets) =>
             {
-                var curSkill = Poision_Cloud;
+                var curSkill = Poison_Cloud;
                 if (user.cp >= curSkill.skillCost)
                 {
                     print($"{user.name} produced {curSkill.skillName}");
@@ -314,8 +344,7 @@ namespace Turnbased_RPG_ConsoleApp
                         if (Chance(2, 3))
                         {
                             Console.ForegroundColor = ConsoleColor.Magenta;
-                            if (StatusEffect.POISONED.TryInflict(target))
-                                print($"{target.name} got poisoned");
+                            StatusEffect.POISONED.TryInflict(target);
                             Console.ForegroundColor = ConsoleColor.White;
                         }
                     }
@@ -333,7 +362,7 @@ namespace Turnbased_RPG_ConsoleApp
             {
                 print($"{user.name} attacked {target.name}");
                 //user.Attack(target);
-                target.ModifyHealth(-AttackFormula(user, 1));
+                target.ModifyHealth(-BasicAttackFormula(user, 1));
             }
             , 0, SkillBase.TargetType.TARGET_SINGLE_OPPONENT);
 
@@ -348,6 +377,9 @@ namespace Turnbased_RPG_ConsoleApp
                     //int amount = (int)(50 * (user.specialAttack / 15f)).Clamp(12, int.MaxValue);
                     int amount = SpecialAttackFormula(user);
                     target.ModifyHealth(-amount, curSkill);
+
+                    if (Chance(1, 6))
+                        StatusEffect.FLAMING.TryInflict(target);
 
                     user.cp -= curSkill.skillCost;
                 }
@@ -367,6 +399,9 @@ namespace Turnbased_RPG_ConsoleApp
                     int amount = SpecialAttackFormula(user, 2);
                     target.ModifyHealth(-amount, curSkill);
 
+                    if (Chance(1, 6))
+                        StatusEffect.FLAMING.TryInflict(target);
+
                     user.cp -= curSkill.skillCost;
                 }
                 else
@@ -384,6 +419,9 @@ namespace Turnbased_RPG_ConsoleApp
                     //int amount = (int)(50 * (user.specialAttack / 15f)).Clamp(12, int.MaxValue);
                     int amount = SpecialAttackFormula(user, 3);
                     target.ModifyHealth(-amount, curSkill);
+
+                    if (Chance(1, 3))
+                        StatusEffect.FLAMING.TryInflict(target);
 
                     user.cp -= curSkill.skillCost;
                 }
@@ -405,6 +443,9 @@ namespace Turnbased_RPG_ConsoleApp
                     {
                         int amount = SpecialAttackFormula(user, 1);
                         target.ModifyHealth(-amount, curSkill);
+
+                        if (Chance(1, 8))
+                            StatusEffect.FLAMING.TryInflict(target);
                     }
 
                     user.cp -= curSkill.skillCost;
@@ -426,6 +467,9 @@ namespace Turnbased_RPG_ConsoleApp
                     {
                         int amount = SpecialAttackFormula(user, 2);
                         target.ModifyHealth(-amount, curSkill);
+
+                        if (Chance(1, 4))
+                            StatusEffect.FLAMING.TryInflict(target);
                     }
 
                     user.cp -= curSkill.skillCost;
@@ -447,6 +491,9 @@ namespace Turnbased_RPG_ConsoleApp
                     {
                         int amount = SpecialAttackFormula(user, 3);
                         target.ModifyHealth(-amount, curSkill);
+
+                        if (Chance(1, 2))
+                            StatusEffect.FLAMING.TryInflict(target);
                     }
 
                     user.cp -= curSkill.skillCost;
@@ -497,10 +544,10 @@ namespace Turnbased_RPG_ConsoleApp
                     print($"{user.name} used {curSkill.skillName}");
 
                     //int amount = (int)(50 * (user.specialAttack / 15f)).Clamp(12, int.MaxValue);
-                    int amount = SpecialAttackFormula(user, 3);
+                    int amount = (int)(SpecialAttackFormula(user, 3) * 0.75f);
 
-                    if (Chance(1, 5))
-                        StatusEffect.PARALYZED.TryInflict(target);
+                    if (Chance(1, 3))
+                        StatusEffect.CONFUSED.TryInflict(target);
 
                     target.ModifyHealth(-amount, curSkill);
 
@@ -562,8 +609,8 @@ namespace Turnbased_RPG_ConsoleApp
                     {
                         int amount = (int)(SpecialAttackFormula(user, 3) * 0.75f);
 
-                        if (Chance(1, 5))
-                            StatusEffect.PARALYZED.TryInflict(target);
+                        if (Chance(1, 3))
+                            StatusEffect.CONFUSED.TryInflict(target);
 
                         target.ModifyHealth(-amount, curSkill);
                     }
@@ -584,7 +631,7 @@ namespace Turnbased_RPG_ConsoleApp
                 {
                     print($"{user.name} used {curSkill.skillName}");
 
-                    target.ModifyHealth(-AttackFormula(user, 2), curSkill);
+                    target.ModifyHealth(-BasicAttackFormula(user, 2), curSkill);
                     user.cp -= curSkill.skillCost;
                 }
                 else
@@ -599,7 +646,7 @@ namespace Turnbased_RPG_ConsoleApp
                 {
                     print($"{user.name} used {curSkill.skillName}");
 
-                    int amount = (int)(SpecialAttackFormula(user, 1) * 0.5 + AttackFormula(user, 2));
+                    int amount = (int)(SpecialAttackFormula(user, 1) * 0.5 + BasicAttackFormula(user, 2));
                     target.ModifyHealth(-amount, curSkill);
 
                     user.cp -= curSkill.skillCost;
@@ -617,7 +664,7 @@ namespace Turnbased_RPG_ConsoleApp
                     print($"{user.name} used {curSkill.skillName}");
 
                     //int amount = (int)(50 * (user.specialAttack / 15f)).Clamp(12, int.MaxValue);
-                    int amount = (int)( SpecialAttackFormula(user, 1) * 0.75 + AttackFormula(user, 3));
+                    int amount = (int)( SpecialAttackFormula(user, 1) * 0.75 + BasicAttackFormula(user, 3));
 
                     if (Chance(1, 5))
                         StatusEffect.PARALYZED.TryInflict(target);
@@ -640,7 +687,7 @@ namespace Turnbased_RPG_ConsoleApp
 
                     foreach (var target in targets)
                     {
-                        int amount = (int)(SpecialAttackFormula(user, 1) * 0.1f + AttackFormula(user, 2));
+                        int amount = (int)(SpecialAttackFormula(user, 1) * 0.1f + BasicAttackFormula(user, 2));
                         target.ModifyHealth(-amount, curSkill);
                     }
 
@@ -660,7 +707,7 @@ namespace Turnbased_RPG_ConsoleApp
 
                     foreach (var target in targets)
                     {
-                        int amount = (int)(SpecialAttackFormula(user, 1) * 0.5 + AttackFormula(user, 2));
+                        int amount = (int)(SpecialAttackFormula(user, 1) * 0.5 + BasicAttackFormula(user, 2));
                         target.ModifyHealth(-amount, curSkill);
                     }
 
@@ -682,7 +729,7 @@ namespace Turnbased_RPG_ConsoleApp
                     {
                         if (Chance(1, 5))
                             StatusEffect.PARALYZED.TryInflict(target);
-                        int amount = (int)(SpecialAttackFormula(user, 1) * 0.75 + AttackFormula(user, 3));
+                        int amount = (int)(SpecialAttackFormula(user, 1) * 0.75 + BasicAttackFormula(user, 3));
                         target.ModifyHealth(-amount, curSkill);
                     }
 
@@ -692,6 +739,406 @@ namespace Turnbased_RPG_ConsoleApp
                     OutOfCP(user.name);
             }
             , 38, SkillBase.TargetType.TARGET_ALL_OPPONENTS, Element.PLANT);
+            #endregion
+
+                #region GROUND
+            Pebble_Blast = new Skill<Actor, Actor>("Pebble Blast", (user, target) =>
+            {
+                var curSkill = Pebble_Blast;
+                if (user.cp >= curSkill.skillCost)
+                {
+                    print($"{user.name} used {curSkill.skillName}");
+
+                    int total = 0;
+                    for (int i = 0; i < 6; i++)//can hit 6 times
+                    {
+                        int amount = (int)(BasicAttackFormula(user, 1) / 3f).Clamp(2, int.MaxValue);
+                        if (i <= 1)
+                        {
+                            total += amount;
+                            target.ModifyHealth(-amount, curSkill);
+                        }
+                        else if (Chance(1, 2))
+                        {
+                            total += amount;
+                            target.ModifyHealth(-amount, curSkill);
+                        }
+                        Thread.Sleep(10);//For randomization
+                    }
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    print($"{total} total damage on {target.name}!");
+                    Console.ForegroundColor = ConsoleColor.White;
+
+                    user.cp -= curSkill.skillCost;
+                }
+                else
+                    OutOfCP(user.name);
+            }
+            , 4, SkillBase.TargetType.TARGET_SINGLE_OPPONENT, Element.GROUND);
+
+            Geo_Shift = new Skill<Actor, Actor>("Geo Shift", (user, target) =>
+            {
+                var curSkill = Geo_Shift;
+                if (user.cp >= curSkill.skillCost)
+                {
+                    print($"{user.name} used {curSkill.skillName}");
+
+                    int amount = BasicAttackFormula(user, 3) + (int)(SpecialAttackFormula(user, 1) * 0.25f);
+                    target.ModifyHealth(-amount, curSkill);
+
+                    user.cp -= curSkill.skillCost;
+                }
+                else
+                    OutOfCP(user.name);
+            }
+            , 8, SkillBase.TargetType.TARGET_SINGLE_OPPONENT, Element.GROUND);
+
+            Fissure = new Skill<Actor, Actor>("Fissure", (user, target) =>
+            {
+                var curSkill = Fissure;
+                if (user.cp >= curSkill.skillCost)
+                {
+                    print($"{user.name} used {curSkill.skillName}");
+
+                    int amount = BasicAttackFormula(user, 4) + (int)(SpecialAttackFormula(user, 1) * 0.75f);
+                    target.ModifyHealth(-amount, curSkill);
+
+                    user.cp -= curSkill.skillCost;
+                }
+                else
+                    OutOfCP(user.name);
+            }
+            , 24, SkillBase.TargetType.TARGET_SINGLE_OPPONENT, Element.GROUND);
+
+            Rock_Slide = new Skill<Actor, List<Actor>>("Rock Slide", (user, targets) =>
+            {
+                var curSkill = Rock_Slide;
+                if (user.cp >= curSkill.skillCost)
+                {
+                    print($"{user.name} used {curSkill.skillName}");
+
+                    foreach (var target in targets)
+                    {
+                        int total = 0;
+                        for (int i = 0; i < 4; i++)//can hit 4 times
+                        {
+                            int amount = (int)(BasicAttackFormula(user, 1) / 2f).Clamp(2, int.MaxValue);
+                            if (i <= 1)
+                            {
+                                total += amount;
+                                target.ModifyHealth(-amount, curSkill);
+                            }
+                            else if (Chance(1, 2))
+                            {
+                                total += amount;
+                                target.ModifyHealth(-amount, curSkill);
+                            }
+                            Thread.Sleep(10);//For randomization
+                        }
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        print($"{total} total damage on {target.name}!");
+                        Console.ForegroundColor = ConsoleColor.White;
+                    }
+
+                    user.cp -= curSkill.skillCost;
+                }
+                else
+                    OutOfCP(user.name);
+            }
+            , 8, SkillBase.TargetType.TARGET_ALL_OPPONENTS, Element.GROUND);
+
+            Spire_Wall = new Skill<Actor, List<Actor>>("Spire Wall", (user, targets) =>
+            {
+                var curSkill = Spire_Wall;
+                if (user.cp >= curSkill.skillCost)
+                {
+                    print($"{user.name} used {curSkill.skillName}");
+
+                    //int amount = (int)(50 * (user.specialAttack / 15f)).Clamp(12, int.MaxValue);
+                    foreach (var target in targets)
+                    {
+                        int amount = BasicAttackFormula(user, 3) + (int)(SpecialAttackFormula(user, 1) * 0.25f);
+                        target.ModifyHealth(-amount, curSkill);
+                    }
+
+                    user.cp -= curSkill.skillCost;
+                }
+                else
+                    OutOfCP(user.name);
+            }
+            , 16, SkillBase.TargetType.TARGET_ALL_OPPONENTS, Element.GROUND);
+
+            Earthquake = new Skill<Actor, List<Actor>>("Earthquake", (user, targets) =>
+            {
+                var curSkill = Earthquake;
+                if (user.cp >= curSkill.skillCost)
+                {
+                    print($"{user.name} used {curSkill.skillName}");
+
+                    //int amount = (int)(50 * (user.specialAttack / 15f)).Clamp(12, int.MaxValue);
+                    foreach (var target in targets)
+                    {
+                        int amount = BasicAttackFormula(user, 4) + (int)(SpecialAttackFormula(user, 1) * 0.75f);
+                        target.ModifyHealth(-amount, curSkill);
+                    }
+
+                    user.cp -= curSkill.skillCost;
+                }
+                else
+                    OutOfCP(user.name);
+            }
+            , 50, SkillBase.TargetType.TARGET_ALL_OPPONENTS, Element.GROUND);
+                #endregion
+
+                #region AIR
+            Wind_Slash = new Skill<Actor, Actor>("Wind Slash", (user, target) =>
+            {
+                var curSkill = Wind_Slash;
+                if (user.cp >= curSkill.skillCost)
+                {
+                    print($"{user.name} used {curSkill.skillName}");
+
+                    target.ModifyHealth(-SpecialAttackFormula(user, 1), curSkill);
+                    user.cp -= curSkill.skillCost;
+                }
+                else
+                    OutOfCP(user.name);
+            }
+            , 4, SkillBase.TargetType.TARGET_SINGLE_OPPONENT, Element.AIR);
+
+            Air_Cannon = new Skill<Actor, Actor>("Air Cannon", (user, target) =>
+            {
+                var curSkill = Air_Cannon;
+                if (user.cp >= curSkill.skillCost)
+                {
+                    print($"{user.name} used {curSkill.skillName}");
+
+                    target.ModifyHealth(-SpecialAttackFormula(user, 2), curSkill);
+
+                    user.cp -= curSkill.skillCost;
+                }
+                else
+                    OutOfCP(user.name);
+            }
+            , 8, SkillBase.TargetType.TARGET_SINGLE_OPPONENT, Element.AIR);
+
+            Sonic_Boom = new Skill<Actor, Actor>("Sonic Boom", (user, target) =>
+            {
+                var curSkill = Sonic_Boom;
+                if (user.cp >= curSkill.skillCost)
+                {
+                    print($"{user.name} used {curSkill.skillName}");
+
+                    //int amount = (int)(50 * (user.specialAttack / 15f)).Clamp(12, int.MaxValue);
+                    int amount = (SpecialAttackFormula(user, 3));
+
+                    target.ModifyHealth(-amount, curSkill);
+
+                    user.cp -= curSkill.skillCost;
+                }
+                else
+                    OutOfCP(user.name);
+            }
+            , 28, SkillBase.TargetType.TARGET_SINGLE_OPPONENT, Element.AIR);
+
+            Slash_Storm = new Skill<Actor, List<Actor>>("Slash Storm", (user, targets) =>
+            {
+                var curSkill = Slash_Storm;
+                if (user.cp >= curSkill.skillCost)
+                {
+                    print($"{user.name} used {curSkill.skillName}");
+
+                    foreach (var target in targets)
+                    {
+                        int amount = SpecialAttackFormula(user, 1);
+                        target.ModifyHealth(-amount, curSkill);
+                    }
+
+                    user.cp -= curSkill.skillCost;
+                }
+                else
+                    OutOfCP(user.name);
+            }
+            , 7, SkillBase.TargetType.TARGET_ALL_OPPONENTS, Element.AIR);
+
+            Sky_Crusher = new Skill<Actor, List<Actor>>("Sky Crusher", (user, targets) =>
+            {
+                var curSkill = Sky_Crusher;
+                if (user.cp >= curSkill.skillCost)
+                {
+                    print($"{user.name} used {curSkill.skillName}");
+
+                    foreach (var target in targets)
+                    {
+                        int amount = SpecialAttackFormula(user, 2);
+                        target.ModifyHealth(-amount, curSkill);
+                    }
+
+                    user.cp -= curSkill.skillCost;
+                }
+                else
+                    OutOfCP(user.name);
+            }
+            , 14, SkillBase.TargetType.TARGET_ALL_OPPONENTS, Element.AIR);
+
+            Hurricane = new Skill<Actor, List<Actor>>("Tsunami", (user, targets) =>
+            {
+                var curSkill = Tsunami;
+                if (user.cp >= curSkill.skillCost)
+                {
+                    print($"{user.name} used {curSkill.skillName}");
+
+                    foreach (var target in targets)
+                    {
+                        int amount = SpecialAttackFormula(user, 3);
+
+                        target.ModifyHealth(-amount, curSkill);
+                    }
+
+                    user.cp -= curSkill.skillCost;
+                }
+                else
+                    OutOfCP(user.name);
+            }
+            , 38, SkillBase.TargetType.TARGET_ALL_OPPONENTS, Element.AIR);
+                #endregion
+
+                #region ELECTRIC
+            Charge_Bolt = new Skill<Actor, Actor>("Charge Bolt", (user, target) =>
+            {
+                var curSkill = Charge_Bolt;
+                if (user.cp >= curSkill.skillCost)
+                {
+                    print($"{user.name} used {curSkill.skillName}");
+
+                    //int amount = (int)(50 * (user.specialAttack / 15f)).Clamp(12, int.MaxValue);
+                    int amount = SpecialAttackFormula(user);
+                    target.ModifyHealth(-amount, curSkill);
+
+                    if (Chance(1, 6))
+                        StatusEffect.PARALYZED.TryInflict(target);
+
+                    user.cp -= curSkill.skillCost;
+                }
+                else
+                    OutOfCP(user.name);
+            }
+            , 4, SkillBase.TargetType.TARGET_SINGLE_OPPONENT, Element.ELECTRIC);
+
+            Taser_Grip = new Skill<Actor, Actor>("Taser Grip", (user, target) =>
+            {
+                var curSkill = Taser_Grip;
+                if (user.cp >= curSkill.skillCost)
+                {
+                    print($"{user.name} used {curSkill.skillName}");
+
+                    //int amount = (int)(50 * (user.specialAttack / 15f)).Clamp(12, int.MaxValue);
+                    int amount = SpecialAttackFormula(user, 2);
+                    target.ModifyHealth(-amount, curSkill);
+
+                    if (Chance(1, 4))
+                        StatusEffect.PARALYZED.TryInflict(target);
+
+                    user.cp -= curSkill.skillCost;
+                }
+                else
+                    OutOfCP(user.name);
+            }
+            , 8, SkillBase.TargetType.TARGET_SINGLE_OPPONENT, Element.ELECTRIC);
+
+            Ion_Overload = new Skill<Actor, Actor>("Ion Overload", (user, target) =>
+            {
+                var curSkill = Ion_Overload;
+                if (user.cp >= curSkill.skillCost)
+                {
+                    print($"{user.name} used {curSkill.skillName}");
+
+                    //int amount = (int)(50 * (user.specialAttack / 15f)).Clamp(12, int.MaxValue);
+                    int amount = SpecialAttackFormula(user, 3);
+                    target.ModifyHealth(-amount, curSkill);
+
+                    if (Chance(1, 2))
+                        StatusEffect.PARALYZED.TryInflict(target);
+
+                    user.cp -= curSkill.skillCost;
+                }
+                else
+                    OutOfCP(user.name);
+            }
+            , 28, SkillBase.TargetType.TARGET_SINGLE_OPPONENT, Element.ELECTRIC);
+
+            Electro_Wave = new Skill<Actor, List<Actor>>("Electro Wave", (user, targets) =>
+            {
+                var curSkill = Electro_Wave;
+                if (user.cp >= curSkill.skillCost)
+                {
+                    print($"{user.name} used {curSkill.skillName}");
+
+                    //int amount = (int)(50 * (user.specialAttack / 15f)).Clamp(12, int.MaxValue);
+
+                    foreach (var target in targets)
+                    {
+                        int amount = SpecialAttackFormula(user, 1);
+                        target.ModifyHealth(-amount, curSkill);
+
+                        if (Chance(1, 6))
+                            StatusEffect.PARALYZED.TryInflict(target);
+                    }
+
+                    user.cp -= curSkill.skillCost;
+                }
+                else
+                    OutOfCP(user.name);
+            }
+            , 8, SkillBase.TargetType.TARGET_ALL_OPPONENTS, Element.ELECTRIC);
+
+            Tesla_Cannon = new Skill<Actor, List<Actor>>("Tesla Cannon", (user, targets) =>
+            {
+                var curSkill = Tesla_Cannon;
+                if (user.cp >= curSkill.skillCost)
+                {
+                    print($"{user.name} used {curSkill.skillName}");
+
+                    //int amount = (int)(50 * (user.specialAttack / 15f)).Clamp(12, int.MaxValue);
+                    foreach (var target in targets)
+                    {
+                        int amount = SpecialAttackFormula(user, 2);
+                        target.ModifyHealth(-amount, curSkill);
+
+                        if (Chance(1, 4))
+                            StatusEffect.PARALYZED.TryInflict(target);
+                    }
+
+                    user.cp -= curSkill.skillCost;
+                }
+                else
+                    OutOfCP(user.name);
+            }
+            , 16, SkillBase.TargetType.TARGET_ALL_OPPONENTS, Element.ELECTRIC);
+
+            Gigawatt_Dischage = new Skill<Actor, List<Actor>>("Gigawatt_Dischage", (user, targets) =>
+            {
+                var curSkill = Gigawatt_Dischage;
+                if (user.cp >= curSkill.skillCost)
+                {
+                    print($"{user.name} used {curSkill.skillName}");
+
+                    //int amount = (int)(50 * (user.specialAttack / 15f)).Clamp(12, int.MaxValue);
+                    foreach (var target in targets)
+                    {
+                        int amount = SpecialAttackFormula(user, 3);
+                        target.ModifyHealth(-amount, curSkill);
+
+                        if (Chance(1, 2))
+                            StatusEffect.PARALYZED.TryInflict(target);
+                    }
+
+                    user.cp -= curSkill.skillCost;
+                }
+                else
+                    OutOfCP(user.name);
+            }
+            , 50, SkillBase.TargetType.TARGET_ALL_OPPONENTS, Element.ELECTRIC);
                 #endregion
 
             #endregion

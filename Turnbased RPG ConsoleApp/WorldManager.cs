@@ -10,16 +10,26 @@ namespace Turnbased_RPG_ConsoleApp
     public static class WorldManager
     {
         static List<Area> areaList = new List<Area>();
-        static List<int> visitedAreaIndexes = new List<int>();
+        public static List<Area> visitedAreas = new List<Area>();
+        //public static List<int> visitedAreaIndexes = new List<int>();
         public static Area curArea;
         public static int areaProgress;
-        static int curAreaIndex;//for saving
+        static int curAreaIndex;
 
-        public static void FinishedBattle(bool fledFromEncounter = false)
+        public static void FinishedBattle(List<Hero> heroes, bool fledFromEncounter = false)
         {
             var prevEncounter = curArea.encounters[areaProgress];
 
-            for (int i = 0; i < prevEncounter.enemies.Count; i++)
+            if ((prevEncounter.enemies == null || prevEncounter.enemies.Count == 0) && prevEncounter.enemyStats != null)//fill possible enmies with new enemies from saved stats
+            {
+                prevEncounter.enemies = new List<Enemy>();
+                for (int e = 0; e < prevEncounter.enemyStats.Count; e++)
+                {
+                    prevEncounter.enemies.Add(new Enemy(prevEncounter.enemyStats[e]));
+                }
+            }
+
+            for (int i = 0; i < prevEncounter.enemies.Count; i++)//for saving
             {
                 prevEncounter.enemies[i].hp = prevEncounter.enemies[i].maxHp;
                 prevEncounter.enemies[i].cp = prevEncounter.enemies[i].maxCp;
@@ -43,7 +53,7 @@ namespace Turnbased_RPG_ConsoleApp
                 if (areaProgress + change < 0)//don't send out of the area
                     change = 0;
 
-                curArea.encounters[areaProgress] = prevEncounter;
+                curArea.encounters[areaProgress] = prevEncounter;//this data is put into visitedAreas on Save
                 areaProgress += change;
                 if (change < 0)
                     print("You ran the wrong direction and lost progress");
@@ -55,27 +65,75 @@ namespace Turnbased_RPG_ConsoleApp
             }
 
             if (areaProgress >= curArea.encounters.Count)
-                Travel(areaList[(areaList.IndexOf(curArea) + 1).Clamp(0, areaList.Count - 1)].name);
+            {
+                var next = areaList[(areaList.IndexOf(GetAreaByName(curArea.name)/*unmodified area*/) + 1).Clamp(0, areaList.Count - 1)];
+                Travel(next.name, heroes);
+            }
+            else if (curArea.checkpoints != null && curArea.checkpoints.ToList().Exists(x => x.index == areaProgress && x.isActive == false))
+            {
+                RestoreAtCheckpoint(heroes, true);
+                curArea.checkpoints[curArea.checkpoints.ToList().IndexOf(curArea.checkpoints.ToList().Find(x => x.index == areaProgress))].isActive = true;
+            }
+            else if (curArea.checkpoints != null && curArea.checkpoints.ToList().Exists(x => x.index == areaProgress))
+            {
+                RestoreAtCheckpoint(heroes);
+            }
         }
 
-        public static void Travel(string locationName, int checkpointNum = 0)
+        static void RestoreAtCheckpoint(List<Hero> heroes, bool firstTime = false)
         {
-            Area location = areaList.Find(a => a.name == locationName);
+            Console.ForegroundColor = ConsoleColor.Blue;
+            if (firstTime)
+                print("You were able to set up a base camp");
+            else
+                print("You arived at the base camp");
+
+            print("HP and CP fully restored!");
+            for (int i = 0; i < heroes.Count; i++)
+            {
+                heroes[i].hp = heroes[i].maxHp;
+                heroes[i].cp = heroes[i].maxCp;
+            }
+            Console.ForegroundColor = ConsoleColor.White;
+        }
+
+        public static void Travel(string locationName, List<Hero> heroes, int checkpointNum = -1)
+        {
+            Area location = GetAreaByName(locationName);
             if (string.IsNullOrEmpty(location.name))
                 return;
 
             curAreaIndex = areaList.IndexOf(location);
-            if (!visitedAreaIndexes.Contains(curAreaIndex))
+            if (!visitedAreas.Exists(x => x.name == location.name))//contains a fresh version of the current location
             {
-                print("You made it to " + location.name);
-                visitedAreaIndexes.Add(curAreaIndex);
+                print("\nYou made it to " + location.name);
+                RestoreAtCheckpoint(heroes, true);
+                //visitedAreaIndexes.Add(curAreaIndex);
+                visitedAreas.Add(areaList[curAreaIndex]);
             }
-            areaProgress = 0;
+            else
+            {
+                print("\nYou warped to " + location.name);
+                if (checkpointNum < 0)//is at the beginning
+                    RestoreAtCheckpoint(heroes, false);
+            }
             curArea = location;
+
+            if (checkpointNum < 0)//go to the beginning
+            {
+                areaProgress = 0;
+            }
+            else
+            {
+                areaProgress = curArea.checkpoints[checkpointNum].index;
+                RestoreAtCheckpoint(heroes, curArea.checkpoints[checkpointNum].isActive);
+            }
         }
 
         public static void ConstructAllAreas(List<Actor> heroes)
         {
+            areaList.Clear();
+
             areaList.Add(new Area("Sorecord Forest", new List<Enemy>()
             {
                EnemyManager.GetEnemy("Growfa", heroes),
@@ -88,33 +146,41 @@ namespace Turnbased_RPG_ConsoleApp
 
             areaList.Add(new Area("Sunstroke Plateau", new List<Enemy>()
             {
-               EnemyManager.GetEnemy("Growfa", heroes, 6, eRate: 20),
-               EnemyManager.GetEnemy("Skoka", heroes, 4, eRate: 10),
-               EnemyManager.GetEnemy("Flarix", heroes, eRate: 50),
-               EnemyManager.GetEnemy("Plugry", heroes, eRate: 30)
-            }, eCount: 10, nIEW: new List<int>() { 50, 40, 10}, new List<EnemyManager.Encounter>()
+               EnemyManager.GetEnemy("Growfa", heroes, lv: 6, eRate: 20),
+               EnemyManager.GetEnemy("Skoka", heroes, lv: 4, eRate: 10),
+               EnemyManager.GetEnemy("Flarix", heroes, lv: 3, eRate: 50),
+               EnemyManager.GetEnemy("Plugry", heroes, lv: 3, eRate: 30)
+            }, eCount: 18, nIEW: new List<int>() { 50, 40, 10}, new List<EnemyManager.Encounter>()
             { //fixed encounters
                 new EnemyManager.Encounter(0, 1, cr: true, enemiesToAdd: EnemyManager.GetEnemy("Skoka", heroes, lv: 3)),
                 new EnemyManager.Encounter(9, 3, true, false, EnemyManager.GetEnemy("Elder Skoka", heroes), EnemyManager.GetEnemy("Growfa", heroes, lv: 3), EnemyManager.GetEnemy("Growfa", heroes, lv: 3))
-            }));
+            }, chkpnts: new (int index, string name, bool isActive)[] { (12, "Flooded Cave Entrance", false) }));
 
 
             curArea = areaList[curAreaIndex];
-            visitedAreaIndexes.Add(curAreaIndex);
+            visitedAreas.Add(curArea);
+        }
+
+        public static Area GetAreaByName(string name)
+        {
+            return areaList.Find(a => a.name == name);
         }
 
         public class Area
         {
             public string name;
-            public List<Enemy> possibleEnemies;
-            //public int encounterCount;
-            /// <summary>
-            /// The number of enemies in an encounter will be (index + 1), and will be choosen by the integer at that index out of 100
-            /// </summary>
-            public List<int> numInEncouterWeights;
 
+            [Newtonsoft.Json.JsonIgnore] public List<Enemy> possibleEnemies;
+            public List<Enemy.Stats> possibleEnemyStats;
+
+            //public int encounterCount;
+            /// <summary> The number of enemies in an encounter will be (index + 1), and will be choosen by the integer at that index out of 100 </summary>
+            public List<int> numInEncouterWeights;
             public List<EnemyManager.Encounter> encounters;
-            //public List<int> checkpointIndexes;
+            public (int index, string name, bool isActive)[] checkpoints;
+
+            [Newtonsoft.Json.JsonIgnore]
+            public List<Action<int>> events;
 
 
             /// <summary>
@@ -124,10 +190,31 @@ namespace Turnbased_RPG_ConsoleApp
             /// <param name="enemies">possible enemies in an area</param>
             /// <param name="eCount">the number of encounters</param>
             /// <param name="nIEW">the number of enemies in an encounter will be (index + 1), and will be choosen by the integer at that index out of 100</param>
-            public Area(string n, List<Enemy> enemies, int eCount, List<int>nIEW, List<EnemyManager.Encounter> fixedEncounters)
+            public Area(string n, List<Enemy> enemies, int eCount, List<int>nIEW, List<EnemyManager.Encounter> fixedEncounters, (int index, string name, bool isActive)[] chkpnts = null)
             {
+                if (n == null)
+                {
+                    //Json Constructor executes before loading so this code didn't work //moved to GenerateEncounter
+                    /*if ((possibleEnemies == null || possibleEnemies.Count == 0) && possibleEnemyStats != null)
+                    {
+                        possibleEnemies = new List<Enemy>();
+                        for (int i = 0; i < possibleEnemyStats.Count; i++)
+                        {
+                            possibleEnemies.Add(new Enemy(possibleEnemyStats[i]));
+                        }
+                    }*/
+                    return;
+                }
+
                 name = n;
                 possibleEnemies = enemies;
+
+                possibleEnemyStats = new List<Enemy.Stats>();
+                for (int i = 0; i < enemies.Count; i++)
+                {
+                    possibleEnemyStats.Add(enemies[i].GetStats());
+                }
+
                 //encounterCount = eCount;
                 numInEncouterWeights = nIEW;
 
@@ -139,11 +226,28 @@ namespace Turnbased_RPG_ConsoleApp
                     else
                         encounters.Add(fixedEncounters.Find(x => x.index == i));//fill spot with proper fixed encounter
                 }
+
+                checkpoints = chkpnts;
             }
 
             public List<Enemy> GenerateEncounter(int i)
             {
+                if ((possibleEnemies == null || possibleEnemies.Count == 0) && possibleEnemyStats != null)//fill possible enmies with new enemies from saved stats
+                {
+                    possibleEnemies = new List<Enemy>();
+                    for (int e = 0; e < possibleEnemyStats.Count; e++)
+                    {
+                        possibleEnemies.Add(new Enemy(possibleEnemyStats[e]));
+                    }
+                }
+
                 var encounter = encounters[i];
+                //Turn the enemy stats of a fixed encounter, into real enemies
+                if((encounter.enemies == null || encounter.enemies.Count == 0) && encounter.enemyStats != null && encounter.enemyStats.Count != 0)
+                {
+                    encounter = new EnemyManager.Encounter(encounter);
+                }
+
                 if (encounter.isFixedEncounter && encounter.hasBeenBeaten && !encounter.canRepeat)
                 {
                     encounter.enemies = null;

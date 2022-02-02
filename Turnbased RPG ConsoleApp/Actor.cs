@@ -9,8 +9,10 @@ namespace Turnbased_RPG_ConsoleApp
     public abstract class Actor : Basic
     {
         public string name = "???";
-        
+
+        [Newtonsoft.Json.JsonIgnore]
         public Element.Type element = Element.NONE;
+
         float elementalHealingMult = 0.25f;
 
         public List<StatusEffect.Type> statusEffects = new List<StatusEffect.Type>(3);
@@ -164,13 +166,17 @@ namespace Turnbased_RPG_ConsoleApp
         public int expYield;
         public int baseExp = 4;
 
+        [Newtonsoft.Json.JsonIgnore]
         public Func<SkillBase> decideTurnAction;
+        [Newtonsoft.Json.JsonIgnore]
         public List<Actor> heroList;
 
         /// <summary>
         /// Out of 100
         /// </summary>
         public int encounterWeight = 50;
+
+        [Newtonsoft.Json.JsonIgnore]
         public Dictionary<int, SkillBase> skillDictionary = null;
 
         public Enemy(string n, int lv = 1, Element.Type elmt = null,  int mhp = 10, int mcp = 5, int atk = 3, int def = 0, int spAtk = 1, int spd = 1, int exp = 4
@@ -208,6 +214,30 @@ namespace Turnbased_RPG_ConsoleApp
             expYield = enemy.expYield;
             decideTurnAction = enemy.decideTurnAction;
             skills = enemy.skills;
+        }
+        public Enemy(Stats stats) : base(n: "", lv: 1, elmt: null, mhp: 1, mcp: 1, atk: 1, def: 1, spAtk: 1, spd: 1)
+        {
+            name = stats.name;
+            level = stats.level;
+            element = Element.GetElementByName(stats.elementName);
+            maxHp = stats.maxHp;
+            hp = maxHp;
+            maxCp = stats.maxCp;
+            cp = maxCp;
+            attack = stats.attack;
+            defense = stats.defense;
+            specialAttack = stats.specialAttack;
+            speed = stats.speed;
+            baseExp = stats.baseExp;
+            expYield = stats.expYield;
+
+            skills = new List<SkillBase>();
+            for (int i = 0; i < stats.skillNameList.Length; i++)
+            {
+                skills.Add(SkillManager.GetSkillByName(stats.skillNameList[i]));
+            }
+
+            decideTurnAction = () => { return DecideTurnAction(); };
         }
 
         /*public void SetExpLevelBonus(int lvDif)
@@ -248,6 +278,51 @@ namespace Turnbased_RPG_ConsoleApp
             else if (targetType != SkillBase.TargetType.NO_TARGET)
                 targets = actorPool;
         }
+
+
+        public Stats GetStats()
+        {
+            Stats stats = new Stats();
+
+            stats.name = name;
+            stats.elementName = element.nameFromEnum.ToString();
+
+            stats.level = level;
+            stats.maxHp = maxHp;
+            stats.hp = hp;
+            stats.maxCp = maxCp;
+            stats.cp = cp;
+            stats.attack = attack;
+            stats.defense = defense;
+            stats.specialAttack = specialAttack;
+            stats.speed = speed;
+
+            stats.baseExp = baseExp;
+            stats.expYield = expYield;
+
+            stats.skillNameList = new string[skills.Count];
+            for (int i = 0; i < skills.Count; i++)
+            {
+                stats.skillNameList[i] = skills[i].skillName;
+            }
+
+            return stats;
+        }
+        [Serializable]
+        public struct Stats
+        {
+            public string name;
+
+            public string elementName;
+
+            public int level, maxHp, hp, maxCp, cp, attack, defense, specialAttack, speed;
+
+            public int baseExp, expYield;
+
+            public int encounterWeight;
+
+            public string[] skillNameList;
+        }
     }
 
     public class Hero : Actor
@@ -273,41 +348,6 @@ namespace Turnbased_RPG_ConsoleApp
                 neededExp = 999999;
 
             skillDictionary = skillDict;
-        }
-
-        public List<SkillBase> GetSortSkills(List<SkillBase> skills = null)
-        {
-            if (skills == null)
-                skills = this.skills;
-            return skills.OrderBy((x) => x.skillType).ThenBy((x) => x.element.nameFromEnum).ThenBy((x) => x.targetType).ThenBy((x) => x.skillCost).ToList();
-        }
-
-        public override void ModifyHealth(int value, SkillBase skillUsed = null, Element.Type atkElmt = null)
-        {
-            base.ModifyHealth(value, skillUsed, atkElmt);
-            if (hp > 0)
-                isDefeated = false;
-        }
-
-        public override void Defeat()
-        {
-            isDefeated = true;
-            Console.ForegroundColor = ConsoleColor.Red;
-            print(name + " blacked out!\n");
-            Console.ForegroundColor = ConsoleColor.White;
-
-            statusEffects.Clear();
-        }
-
-        public void LearnSkill(SkillBase skill)
-        {
-            if (skills.Contains(skill))
-                return;
-
-            Console.ForegroundColor = ConsoleColor.Magenta;
-            skills.Add(skill);
-            print(name + " learned " + skill.skillName + "!");
-            Console.ForegroundColor = ConsoleColor.White;
         }
 
         public void LevelUp()
@@ -375,6 +415,41 @@ namespace Turnbased_RPG_ConsoleApp
             Console.ForegroundColor = ConsoleColor.White;
         }
 
+        public List<SkillBase> GetSortedSkills(List<SkillBase> skills = null)
+        {
+            if (skills == null)
+                skills = this.skills;
+            return skills.OrderBy((x) => x.skillType).ThenBy((x) => x.element.nameFromEnum).ThenBy((x) => x.targetType).ThenBy((x) => x.skillCost).ToList();
+        }
+
+        public override void ModifyHealth(int value, SkillBase skillUsed = null, Element.Type atkElmt = null)
+        {
+            base.ModifyHealth(value, skillUsed, atkElmt);
+            if (hp > 0)
+                isDefeated = false;
+        }
+
+        public override void Defeat()
+        {
+            isDefeated = true;
+            Console.ForegroundColor = ConsoleColor.Red;
+            print(name + " blacked out!\n");
+            Console.ForegroundColor = ConsoleColor.White;
+
+            statusEffects.Clear();
+        }
+
+        public void LearnSkill(SkillBase skill)
+        {
+            if (skills.Contains(skill))
+                return;
+
+            Console.ForegroundColor = ConsoleColor.Magenta;
+            skills.Add(skill);
+            print(name + " learned " + skill.skillName + "!");
+            Console.ForegroundColor = ConsoleColor.White;
+        }
+
         public void DisplayStatus()
         {
             Console.ForegroundColor = ConsoleColor.Cyan;
@@ -419,5 +494,77 @@ namespace Turnbased_RPG_ConsoleApp
             //print("EXP To Next Level: " + neededExp);
             Console.ForegroundColor = ConsoleColor.White;
         }
+
+        public Stats GetStats()
+        {
+            Stats stats = new Stats();
+
+            stats.name = name;
+            stats.elementName = element.nameFromEnum.ToString();
+            stats.statusEffects = statusEffects;
+
+            stats.level = level;
+            stats.maxHp = maxHp;
+            stats.hp = hp;
+            stats.maxCp = maxCp;
+            stats.cp = cp;
+            stats.attack = attack;
+            stats.defense = defense;
+            stats.specialAttack = specialAttack;
+            stats.speed = speed;
+
+            stats.exp = exp;
+            stats.neededExp = neededExp;
+
+            stats.skillNameList = new string[skills.Count];
+            for (int i = 0; i < skills.Count; i++)
+            {
+                stats.skillNameList[i] = skills[i].skillName;
+            }
+
+            return stats;
+        }
+        public void LoadStats(Stats stats)
+        {
+            name = stats.name;
+            element = Element.GetElementByName(stats.elementName);
+            statusEffects = stats.statusEffects;
+
+            level = stats.level;
+            maxHp = stats.maxHp;
+            hp = stats.hp;
+            maxCp = stats.maxCp;
+            cp = stats.cp;
+            attack = stats.attack;
+            defense = stats.defense;
+            specialAttack = stats.specialAttack;
+            speed = stats.speed;
+
+            exp = stats.exp;
+            neededExp = stats.neededExp;
+
+            skills = new List<SkillBase>();
+            for (int i = 0; i < stats.skillNameList.Length; i++)
+            {
+                skills.Add(SkillManager.GetSkillByName(stats.skillNameList[i]));
+            }
+        }
+
+        [Serializable]
+        public struct Stats
+        {
+            public string name;
+
+            public string elementName;
+
+            public List<StatusEffect.Type> statusEffects;
+
+            public int level, maxHp, hp, maxCp, cp, attack, defense, specialAttack, speed;
+
+            public int exp, neededExp;
+
+            public string[] skillNameList;
+        }
+
     }
 }
