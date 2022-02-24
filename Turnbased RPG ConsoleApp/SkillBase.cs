@@ -18,6 +18,13 @@ namespace Turnbased_RPG_ConsoleApp
 
         public int skillCost = 0;
 
+        /// <summary>
+        /// 0: Based on speed;
+        /// -1: Always last;
+        /// 1: Always first;
+        /// </summary>
+        public int priority = 0;
+
         public void TryGetSkill(string name)//called from SkillManager.GetSkillByName
         {
             if (name == skillName)
@@ -56,6 +63,8 @@ namespace Turnbased_RPG_ConsoleApp
 
             skillType = SkillType.DAMAGING;
 
+            priority = 0;
+
             SkillManager.callForSkill += TryGetSkill;//get skill by name without exact without using reflections
         }
     }
@@ -80,11 +89,12 @@ namespace Turnbased_RPG_ConsoleApp
         public Action<T1> action;
 
         public Skill(string name,  Action<T1> action, int cost = 0, TargetType targetType = TargetType.NO_TARGET
-            , Element.Type elmt = null, string info = "") : base(name, cost, targetType, elmt, info)
+            , Element.Type elmt = null, int pri = 0, string info = "") : base(name, cost, targetType, elmt, info)
         {
+            priority = pri;
             this.action = action;
         }
-        public Skill(Skill<T1> skill) : base(name: "", cost: 0, targetType: TargetType.TARGET_SINGLE_OPPONENT, elmt: null, info: "")
+        public Skill(Skill<T1> skill) : base(name: "", cost: 0, targetType: TargetType.NO_TARGET, elmt: null, info: "")
         {
             _skillName = skill.skillName;
             _skillInfo = skill.skillInfo;
@@ -93,6 +103,7 @@ namespace Turnbased_RPG_ConsoleApp
             element = skill.element;
 
             skillType = skill.skillType;
+            priority = skill.priority;
 
             action = skill.action;
             skillType = skill.skillType;
@@ -109,8 +120,9 @@ namespace Turnbased_RPG_ConsoleApp
         public Action<T1, T2> action;
 
         public Skill(string name, Action<T1, T2> action, int cost = 0, TargetType targetType = TargetType.TARGET_SINGLE_OPPONENT
-            , Element.Type elmt = null, SkillType skillType = SkillType.DAMAGING, string info = "") : base(name, cost, targetType, elmt, info)
+            , Element.Type elmt = null, SkillType skillType = SkillType.DAMAGING, int pri = 0, string info = "") : base(name, cost, targetType, elmt, info)
         {
+            priority = pri;
             this.action = action;
             this.skillType = skillType;
         }
@@ -123,6 +135,7 @@ namespace Turnbased_RPG_ConsoleApp
             element = skill.element;
 
             skillType = skill.skillType;
+            priority = skill.priority;
 
             action = skill.action;
             skillType = skill.skillType;

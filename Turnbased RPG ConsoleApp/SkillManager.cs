@@ -17,6 +17,7 @@ namespace Turnbased_RPG_ConsoleApp
         public static Skill<Actor> Sleep;
         public static Skill<Actor> Immobile;
         public static Skill<Actor> Waste_Stare;
+        public static Skill<Actor> Waste_Roar;
         public static Skill<Actor> Waste_Short_Circut;
         public static Skill<Actor> Waste_Jumping;
 
@@ -32,50 +33,92 @@ namespace Turnbased_RPG_ConsoleApp
         //
 
         public static Skill<Actor, Actor> Attack;
+        public static Skill<Actor> Guard;
         public static Skill<Actor, Actor> Scan_Lash;
 
         //Fire moves
+        /// <summary>Level 1; Hit one</summary>
         public static Skill<Actor, Actor> Fireball;
+        /// <summary>Level 2; Hit one</summary>
         public static Skill<Actor, Actor> Flame_Burst;
+        /// <summary>Level 3; Hit one</summary>
         public static Skill<Actor, Actor> Eruption;
+        /// <summary>Level 1; Hit all</summary>
         public static Skill<Actor, List<Actor>> Flare_Fall;
+        /// <summary>Level 2; Hit all</summary>
         public static Skill<Actor, List<Actor>> Blazing_Vortex;
+        /// <summary>Level 3; Hit all</summary>
         public static Skill<Actor, List<Actor>> Supernova;
+
         //Water moves
+        /// <summary>Level 1; Hit one</summary>
         public static Skill<Actor, Actor> Water_Pulse;
+        /// <summary>Level 2; Hit one</summary>
         public static Skill<Actor, Actor> Water_Jet;
+        /// <summary>Level 3; Hit one</summary>
         public static Skill<Actor, Actor> Hydo_Cannon;
         //public static Skill<Actor, Actor> Torpedo;//Physical
+        /// <summary>Level 1; Hit all</summary>
         public static Skill<Actor, List<Actor>> Waterfall;
+        /// <summary>Level 2; Hit all</summary>
         public static Skill<Actor, List<Actor>> Deluge;
+        /// <summary>Level 3; Hit all</summary>
         public static Skill<Actor, List<Actor>> Tsunami;
+
         //Plant moves
+        /// <summary>Level 1; Hit one</summary>
         public static Skill<Actor, Actor> Vine_Whip;
+        /// <summary>Level 2; Hit one</summary>
         public static Skill<Actor, Actor> Leaf_Cutter;
+        /// <summary>Level 3; Hit one</summary>
         public static Skill<Actor, Actor> Needle_Tomb;
+        /// <summary>Level 1; Hit all</summary>
         public static Skill<Actor, List<Actor>> Leaf_Storm;
+        /// <summary>Level 2; Hit all</summary>
         public static Skill<Actor, List<Actor>> Root_Wave;
+        /// <summary>Level 3; Hit all</summary>
         public static Skill<Actor, List<Actor>> Thorn_Canopy;
+
         //Ground moves
+        /// <summary>Level 1; Hit one</summary>
         public static Skill<Actor, Actor> Pebble_Blast;
+        /// <summary>Level 2; Hit one</summary>
         public static Skill<Actor, Actor> Geo_Shift;
+        /// <summary>Level 3; Hit one</summary>
         public static Skill<Actor, Actor> Fissure;
+        /// <summary>Level 1; Hit all</summary>
         public static Skill<Actor, List<Actor>> Rock_Slide;
+        /// <summary>Level 2; Hit all</summary>
         public static Skill<Actor, List<Actor>> Spire_Wall;
+        /// <summary>Level 3; Hit all</summary>
         public static Skill<Actor, List<Actor>> Earthquake;
+
         //Air moves
+        /// <summary>Level 1; Hit one</summary>
         public static Skill<Actor, Actor> Wind_Slash;
+        /// <summary>Level 2; Hit one</summary>
         public static Skill<Actor, Actor> Air_Cannon;
+        /// <summary>Level 3; Hit one</summary>
         public static Skill<Actor, Actor> Sonic_Boom;
+        /// <summary>Level 1; Hit all</summary>
         public static Skill<Actor, List<Actor>> Slash_Storm;
+        /// <summary>Level 2; Hit all</summary>
         public static Skill<Actor, List<Actor>> Sky_Crusher;
+        /// <summary>Level 3; Hit all</summary>
         public static Skill<Actor, List<Actor>> Hurricane;
+
         //Electric moves
+        /// <summary>Level 1; Hit one</summary>
         public static Skill<Actor, Actor> Charge_Bolt;
+        /// <summary>Level 2; Hit one</summary>
         public static Skill<Actor, Actor> Taser_Grip;
+        /// <summary>Level 3; Hit one</summary>
         public static Skill<Actor, Actor> Ion_Overload;
+        /// <summary>Level 1; Hit all</summary>
         public static Skill<Actor, List<Actor>> Electro_Wave;
+        /// <summary>Level 2; Hit all</summary>
         public static Skill<Actor, List<Actor>> Tesla_Cannon;
+        /// <summary>Level 3; Hit all</summary>
         public static Skill<Actor, List<Actor>> Gigawatt_Dischage;
 
         //Healing
@@ -116,9 +159,7 @@ namespace Turnbased_RPG_ConsoleApp
             }
         }
 
-        public static void ConstructAllSkills()
-        {
-            int SpecialAttackFormula(Actor user, int rank = 1, int baseValue = 32, float scalar = 0.36f, bool varyDamage = true)
+        public static int SpecialAttackFormula(Actor user, int rank = 1, int baseValue = 32, float scalar = 0.36f, bool varyDamage = true)
             {
                 float rankDamper = 0.75f;
                 if (rank >= 3)
@@ -129,9 +170,9 @@ namespace Turnbased_RPG_ConsoleApp
                     amount += RandomInt(-(int)(amount * 0.1f), (int)(amount * 0.1f));
                 return amount;
             }
-            int BasicAttackFormula(Actor user, int rank = 1, float fluxPercent = 0.1f, int fluxMin = 2)
+        public static int BasicAttackFormula(Actor user, int rank = 1, float fluxPercent = 0.1f, int fluxMin = 2)
             {
-                float rankDamper = 2f;
+                float rankDamper = 1.4f;
 
                 //print((rank * rankDamper).Clamp(1, 50));
                 int damage = (int)( (user.attack * Math.Sqrt(rank).Clamp(1, float.MaxValue)) + (1.25f * Math.Sqrt(user.level * 0.75f).Clamp(1, 100)) * Math.Pow(rank, rankDamper).Clamp(1, 50) );
@@ -143,7 +184,7 @@ namespace Turnbased_RPG_ConsoleApp
                 return damage;
             }
 
-            int SpecialHealingFormula(Actor user, int rank = 1, int baseValue = 30, float scalar = 1f)
+        public static int SpecialHealingFormula(Actor user, int rank = 1, int baseValue = 30, float scalar = 1f)
             {
                 float rankDamper = 1f;
                 if (rank >= 3)
@@ -152,10 +193,12 @@ namespace Turnbased_RPG_ConsoleApp
                 return (int)(baseValue * Math.Sqrt(rank * rankDamper).Clamp(1, 50) * scalar * (rank * 0.75f).Clamp(1, 50) );
             }
 
-            void OutOfCP(string n)
+        public static void OutOfCP(string n)
             {
                 print($"{n} didn't have enough CP");
             }
+        public static void ConstructAllSkills()
+        {
 
             Scan_Lash = new Skill<Actor, Actor>("Scan Lash", (user, target) =>
             {
@@ -168,6 +211,20 @@ namespace Turnbased_RPG_ConsoleApp
                 print($"Scan results for {target.name}:");
                 print($"LV: {target.level}");
                 print($"ELMT: {target.element.nameFromEnum}");
+
+                target.statusEffects.RemoveAll(x => x == null);
+                if (target.statusEffects.Count > 0)
+                {
+                    print($"STATUS: ", true);
+                    for (int i = 0; i < target.statusEffects.Count; i++)
+                    {
+                        if (i > 0)
+                            print(", ", true);
+                        print(target.statusEffects[i].name, true);
+                    }
+                    print("");
+                }
+
                 print($"HP: {target.hp}/{target.maxHp}");
                 print($"CP: {target.cp}/{target.maxCp}");
                 print("------------------------------------");//36
@@ -175,6 +232,14 @@ namespace Turnbased_RPG_ConsoleApp
                 Console.ReadKey(true);
             }
             , 0, SkillBase.TargetType.TARGET_SINGLE_OPPONENT, Element.IGNORE_ALL);
+
+            Guard = new Skill<Actor>("Guard", (user) =>
+            {
+                //this move should ignore speed and happen before anything
+                //it stops when the next turn order is decided
+                print(user.name + " is guarding");
+                user.isGuarding = true;
+            }, pri: 2);
 
             #region TURN WASTING
             Skip_Turn = new Skill<Actor>("Do Nothing", (user) =>
@@ -197,6 +262,11 @@ namespace Turnbased_RPG_ConsoleApp
             Waste_Stare = new Skill<Actor>("Stare", (user) =>
             {
                 print($"{user.name} stared you down");
+            });
+
+            Waste_Roar = new Skill<Actor>("Roar", (user) =>
+            {
+                print($"{user.name} let out an intense roar");
             });
 
             Waste_Short_Circut = new Skill<Actor>("Short Circut", (user) =>
@@ -546,7 +616,7 @@ namespace Turnbased_RPG_ConsoleApp
                     //int amount = (int)(50 * (user.specialAttack / 15f)).Clamp(12, int.MaxValue);
                     int amount = (int)(SpecialAttackFormula(user, 3) * 0.75f);
 
-                    if (Chance(1, 3))
+                    if (!target.isGuarding && Chance(1, 3))
                         StatusEffect.CONFUSED.TryInflict(target);
 
                     target.ModifyHealth(-amount, curSkill);

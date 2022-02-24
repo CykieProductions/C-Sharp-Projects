@@ -1,0 +1,302 @@
+﻿using System;
+using System.ComponentModel;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using CyTools;
+using static CyTools.Basic;
+
+namespace CysmicEngine
+{
+    public class GizmoObj
+    {
+        private Transform _transform;
+        public Transform transform { get { return _transform; } }
+        private Renderer _renderer;
+        public Renderer renderer { get { return _renderer; } }
+
+        public GizmoObj(Transform t, Renderer r)
+        {
+            _transform = t;
+            _renderer = r;
+            _renderer.transform = t;
+
+            CysmicGame.allGizmos.Add(this);
+        }
+    }
+    public class GameObject
+    {
+        /*void OnTriggerEnter    (Collider2D other) { }
+        void OnTriggerStay     (Collider2D other) { }
+        void OnTriggerExit     (Collider2D other) { }
+        void OnCollisionEnter  (Collider2D self, Collider2D other) { }
+        void OnCollisionStay   (Collider2D self, Collider2D other) { }
+        void OnCollisionExit   (Collider2D self, Collider2D other) { }*/
+
+        public string name = "New Game Object";
+        //public string name { get { return _name; } set { _uniqueID = _uniqueID.Replace(name, value); _name = value; } }
+        string _uniqueID = "";
+        public string uniqueID { get { return _uniqueID; } }
+
+        List<Component> _allComponents;
+        public List<Component> allComponents { get { return _allComponents; } private set { _allComponents = value; } }
+        public Transform transform;
+
+        public string layer = "";
+        internal bool _wasDestroyed;
+        internal Action StartComponents;
+        bool isInitializing = true;
+
+        public bool wasDestroyed { get { return _wasDestroyed; } }
+
+        public T AddComponent<T>(T component) where T: Component
+        {
+            if (component.OnlyOnePerGO())
+            {
+                for (int i2 = 0; i2 < allComponents.Count; i2++)
+                {
+                    if (allComponents[i2].GetType() == component.GetType())
+                    {
+                        return null;
+                    }
+                }
+            }
+
+            allComponents.Add(component);
+            int i = allComponents.IndexOf(component);
+            if(transform == null)
+                allComponents[i].transform = component as Transform;
+            else
+                allComponents[i].transform = transform;
+            allComponents[i].gameObject = this;
+
+            if(isInitializing)//wait to call Start
+                StartComponents += allComponents[i].OnStart;
+            else
+                allComponents[i].OnStart();
+
+            CysmicGame.game.OnUpdate += allComponents[i].OnUpdate;//() => { allComponents[i].Update(); CysmicGame.ClearNullGameObjects(); };
+            CysmicGame.game.OnLateUpdate += allComponents[i].OnLateUpdate;//() => { allComponents[i].LateUpdate(); CysmicGame.ClearNullGameObjects(); };
+            CysmicGame.game.OnFixedUpdate += allComponents[i].OnFixedUpdate;
+
+            return component;
+        }
+
+        void Register()
+        {
+            if (CysmicGame.allGameObjects.Contains(this))
+            {
+                name += " (Clone)";
+                CysmicGame.allGameObjects.Add(this);
+            }
+            else
+            {
+                CysmicGame.allGameObjects.Add(this);
+            }
+
+            for (int i = 0; i < allComponents.Count; i++)
+            {
+                if (allComponents[i] is Renderer)
+                {
+                    CysmicGame.allRenderers.Add(allComponents[i] as Renderer);
+                }
+                else if (allComponents[i] is Collider2D)
+                {
+                    CysmicGame.allColliders.Add(allComponents[i] as Collider2D);
+                }
+            }
+        }
+
+        public GameObject(GameObject gameObject)
+        {
+            name += " (Clone)";
+            _uniqueID = gameObject._uniqueID.Replace(gameObject.name, name);
+            allComponents = gameObject.allComponents;
+            transform = gameObject.transform;
+        }
+        public GameObject(string n = "[defaultName]", Transform trnfrm = null, List<Component> components = null, string lyr = "", string extraID = "")
+        {
+            allComponents = new List<Component>();
+            if (n == "[defaultName]")
+            {
+                n = name;
+            }
+            name = n;
+            layer = lyr;//replace with "find class by enum"
+
+            //Initialize ID
+            _uniqueID = "~" + name + "~" + DateTime.UtcNow.ToString() + DateTime.UtcNow.Millisecond + Basic.r.Next() + "|" + extraID;
+            while (CysmicGame.allGameObjects.Exists(x =>x != null && x.uniqueID == uniqueID))
+                _uniqueID += "(C)";
+
+            //Initialize Components
+            //allComponents = components;
+            if (components == null)
+                components = new List<Component>();//If null, set it
+
+            if (trnfrm != null)
+            {
+                components.Insert(0, trnfrm);
+            }
+            else//if doesn't have Transform, then add it
+            {
+                var t = components.Find(x => x is Transform);
+                if(t == null)
+                    components.Insert(0, new Transform());
+                else
+                {
+                    components.RemoveAll(x => x is Transform);
+                    components.Insert(0, t);//move it to the front
+                }
+            }
+
+            transform = AddComponent(components.Find(x => x is Transform) as Transform);
+            /*pos = pos ?? Vector2.Zero;//this is a condensed null check
+            scl = scl ?? (1, 1);
+            rot = rot != Vector2.Zero ? Vector2.Zero : ;*/
+
+            for (int i = 0; i < components.Count; i++)
+            {
+                AddComponent(components[i]);
+            }
+            allComponents = allComponents.OrderBy(x => !(x is Collider2D)).ToList();
+
+            isInitializing = false;
+            StartComponents.Invoke();
+
+            Register();
+        }
+
+        public bool TryGetComponent<T>(out T component) where T : Component
+        {
+            component = (T)allComponents.Find(x => x is T);
+            return component != null;
+        }
+        public T GetComponent<T>() where T : Component
+        {
+            return (T)allComponents.Find(x => x is T);
+        }
+    }
+
+    public abstract class Component : CE_Common
+    {
+        //bool _onlyOnePerGO = false;
+        //public bool onlyOnePerGO { get { return _onlyOnePerGO; } protected set { _onlyOnePerGO = value; } }
+        public GameObject gameObject;
+        public Transform transform;
+
+        internal void OnStart() => Start();
+        protected virtual void Start() { gameObject.StartComponents -= OnStart; }
+
+        internal void OnUpdate() => Update();
+        protected virtual void Update() { }
+
+        //Called after this frame's Draw call
+        internal void OnLateUpdate(/*System.Drawing.Graphics graphics*/) => LateUpdate();
+        protected virtual void LateUpdate() { }
+
+        internal void OnFixedUpdate() => FixedUpdate();
+        protected virtual void FixedUpdate() { }
+
+
+        public bool TryGetComponent<T>(out T component) where T: Component
+        {
+            component = (T)gameObject.allComponents.Find(x => x is T);
+            return component != null;
+        }
+        public T GetComponent<T>() where T: Component
+        {
+            return (T)gameObject.allComponents.Find(x => x is T);
+        }
+
+        public virtual void OnTriggerEnter(Collider2D other) { }
+        public virtual void OnTriggerStay(Collider2D other) { }
+        public virtual void OnTriggerExit(Collider2D other) { }
+        public virtual void OnCollisionEnter(Collider2D self, Collider2D other) { }
+        public virtual void OnCollisionStay(Collider2D self, Collider2D other) { }
+        public virtual void OnCollisionExit(Collider2D self, Collider2D other) { }
+
+        public virtual bool OnlyOnePerGO() { return false; }
+    }
+
+    public class Transform : Component
+    {
+        public float lifespan;
+        public float _aliveTimer;
+        public float aliveTimer { get { return _aliveTimer; } }
+        Vector2 _position = new Vector2();
+        public Vector2 position { get { return _position; } set { _position = value; } }
+        public Vector2 scale = new Vector2();
+        public float rotation = 0;
+
+        public bool isStatic = true;
+
+        public Transform(Vector2 pos, Vector2 scl, float rot = 0)
+        {
+            position = pos;
+            scale = scl;
+            rotation = rot;
+        }
+        public Transform()
+        {
+            position = Vector2.Zero;
+            scale = (32, 32);
+            rotation = 0;
+        }
+
+        public void Translate(Vector2 movement)
+        {
+            if (isStatic)
+                return;
+
+            _position.x += movement.x;
+            _position.y -= movement.y;
+        }
+        public void Translate(float x, float y)
+        {
+            Translate((x, y));
+        }
+
+        public Transform SetPosition(Vector2 pos)
+        {
+            transform._position = pos;
+            return transform;
+        }
+        public Transform SetScale(Vector2 scl)
+        {
+            transform.scale = scl;
+            return transform;
+        }
+        public Transform SetRotation(float rot)
+        {
+            transform.rotation = rot;
+            return transform;
+        }
+
+        public override bool OnlyOnePerGO()
+        {
+            //onlyOnePerGO = true;
+            return true;
+        }
+        /*protected override void Start()
+        {
+
+        }*/
+        bool wasDestroyed = false;
+        protected override void Update()
+        {
+            if(!wasDestroyed && lifespan > 0 && aliveTimer > lifespan)
+            {
+                CysmicGame.Destroy(gameObject);
+                wasDestroyed = true;
+            }
+            else if(wasDestroyed)
+            {
+                print("THIS OBJECT SHOULD'VE BEEN DESTROYED! aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+                //instance.OnUpdate -= Update;
+            }
+            _aliveTimer += Time.deltaTime;
+        }
+    }
+}

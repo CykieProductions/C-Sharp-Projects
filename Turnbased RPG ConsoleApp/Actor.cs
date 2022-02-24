@@ -9,6 +9,7 @@ namespace Turnbased_RPG_ConsoleApp
     public abstract class Actor : Basic
     {
         public string name = "???";
+        public bool isGuarding = false;
 
         [Newtonsoft.Json.JsonIgnore]
         public Element.Type element = Element.NONE;
@@ -101,7 +102,7 @@ namespace Turnbased_RPG_ConsoleApp
                 float mult = Element.CheckAttackAgainst(atkElmt, this);
 
                 int newValue = (int)(value * mult);
-                if (mult != 0)
+                if (mult != 0 && mult != float.NegativeInfinity)
                     newValue.Clamp(1, int.MaxValue);
                 value = newValue;
                 //print("Damage has been multiplied by " + mult);
@@ -109,9 +110,19 @@ namespace Turnbased_RPG_ConsoleApp
                 value = (int)(value * (100f / (100f + defense + defense * .25f)));
                 //print(name + " will take " + Math.Round((100f / (100f + defense + defense * .25f)) * 100f, 1) + "% of the damage");
 
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                print(name + " took " + -value + " damage");
-                Console.ForegroundColor = ConsoleColor.White;
+                if (isGuarding && value < 0)//Don't bother guarding 0 damage attacks
+                {
+                    value = (int)(value * 0.6f).Clamp(float.MinValue, -1);
+                }
+
+                if (mult != 0 && mult != float.NegativeInfinity)
+                {
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    print(name + " took " + -value + " damage");
+                    Console.ForegroundColor = ConsoleColor.White;
+                }
+                else
+                    shouldAffectHp = false;
             }
 
             if (shouldAffectHp)//Won't modify if still down
@@ -176,11 +187,17 @@ namespace Turnbased_RPG_ConsoleApp
         /// </summary>
         public int encounterWeight = 50;
 
+        /// <summary>
+        /// [0] is minimum progress before spawning and [1] is the maximum
+        /// </summary>
+        [Newtonsoft.Json.JsonIgnore]
+        public int[] spawnRange = new int[2] { 0, int.MaxValue };
+
         [Newtonsoft.Json.JsonIgnore]
         public Dictionary<int, SkillBase> skillDictionary = null;
 
         public Enemy(string n, int lv = 1, Element.Type elmt = null,  int mhp = 10, int mcp = 5, int atk = 3, int def = 0, int spAtk = 1, int spd = 1, int exp = 4
-            , List<SkillBase> skillList = null, Func<SkillBase> action = null, Dictionary<int, SkillBase> skillDict = null) : base(n, lv, elmt, mhp, mcp, atk, def, spAtk, spd)
+            , List<SkillBase> skillList = null, Func<SkillBase> ai = null, Dictionary<int, SkillBase> skillDict = null) : base(n, lv, elmt, mhp, mcp, atk, def, spAtk, spd)
         {
             baseExp = exp;
             expYield = baseExp;
@@ -190,14 +207,14 @@ namespace Turnbased_RPG_ConsoleApp
             
             skills.Add(SkillManager.Attack);
 
-            if (action != null)
-                decideTurnAction = action;
+            if (ai != null)
+                decideTurnAction = ai;
             else
                 decideTurnAction = () => { return DecideTurnAction(); };
 
             skillDictionary = skillDict;
         }
-        public Enemy(Enemy enemy) : base(n: "", lv: 1, elmt: null, mhp: 1, mcp: 1, atk: 1, def: 1, spAtk: 1, spd: 1)
+        public Enemy(Enemy enemy, Func<SkillBase> ai = null) : base(n: "", lv: 1, elmt: null, mhp: 1, mcp: 1, atk: 1, def: 1, spAtk: 1, spd: 1)
         {
             name = enemy.name;
             level = enemy.level;
@@ -206,13 +223,17 @@ namespace Turnbased_RPG_ConsoleApp
             hp = maxHp;
             maxCp = enemy.maxCp;
             cp = maxCp;
+            statusEffects = new List<StatusEffect.Type>();
             attack = enemy.attack;
             defense = enemy.defense;
             specialAttack = enemy.specialAttack;
             speed = enemy.speed;
             baseExp = enemy.baseExp;
             expYield = enemy.expYield;
-            decideTurnAction = enemy.decideTurnAction;
+            if (ai == null)
+                decideTurnAction = enemy.decideTurnAction;
+            else
+                decideTurnAction = ai;
             skills = enemy.skills;
         }
         public Enemy(Stats stats) : base(n: "", lv: 1, elmt: null, mhp: 1, mcp: 1, atk: 1, def: 1, spAtk: 1, spd: 1)
@@ -224,6 +245,7 @@ namespace Turnbased_RPG_ConsoleApp
             hp = maxHp;
             maxCp = stats.maxCp;
             cp = maxCp;
+            statusEffects = new List<StatusEffect.Type>();
             attack = stats.attack;
             defense = stats.defense;
             specialAttack = stats.specialAttack;
@@ -247,7 +269,7 @@ namespace Turnbased_RPG_ConsoleApp
 
         SkillBase DecideTurnAction()
         {
-            var skillPool = skills;
+            var skillPool = skills.ToList();//copy of the og
             foreach (var skill in skills)
             {
                 if (skill.skillCost > cp && Chance(1, 2))//Leaves a small chance to use a skill that costs too much
@@ -332,9 +354,14 @@ namespace Turnbased_RPG_ConsoleApp
 
         public int exp;
         public int neededExp;
-        public bool isDefeated;
+        public bool isDefeated = false;
 
         public Dictionary<int, SkillBase> skillDictionary = null;
+
+        int CalculateNeededExp(int lv)
+        {
+            return (int)(initExp * (lv - 1) * (expGrowthScaler * (int)(lv * 0.1f)).Clamp(1, 5) + initExp);
+        }
 
         public Hero(string n, int lv = 1, Element.Type elmt = null, int mhp = 10, int mcp = 5, int atk = 5, int def = 0, int spAtk = 1, int spd = 2, int inxp = 8, float growthScalar = 1.75f
             , Dictionary<int, SkillBase> skillDict = null) : base(n, lv, elmt, mhp, mcp, atk, def, spAtk, spd) 
@@ -343,11 +370,36 @@ namespace Turnbased_RPG_ConsoleApp
             expGrowthScaler = growthScalar;
 
             if (level < maxLevel)
-                neededExp = (int)(initExp * (level - 1) * (expGrowthScaler * (int)(level * 0.1f)).Clamp(1, 5) + initExp);
+                neededExp = CalculateNeededExp(level);
             else
                 neededExp = 999999;
 
             skillDictionary = skillDict;
+        }
+        public Hero(Hero hero) : base(n: "", lv: 1, elmt: null, mhp: 1, mcp: 1, atk: 1, def: 1, spAtk: 1, spd: 1) 
+        {
+            name = hero.name;
+            level = hero.level;
+            element = hero.element;
+            maxHp = hero.maxHp;
+            hp = maxHp;
+            maxCp = hero.maxCp;
+            cp = maxCp;
+            statusEffects = new List<StatusEffect.Type>();
+            attack = hero.attack;
+            defense = hero.defense;
+            specialAttack = hero.specialAttack;
+            speed = hero.speed;
+            initExp = hero.initExp;
+            expGrowthScaler = hero.expGrowthScaler;
+
+            if (level < maxLevel)
+                neededExp = CalculateNeededExp(level);
+            else
+                neededExp = 999999;
+
+            skills = hero.skills;
+            skillDictionary = hero.skillDictionary;
         }
 
         public void LevelUp()

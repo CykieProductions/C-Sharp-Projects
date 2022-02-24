@@ -102,6 +102,7 @@ namespace Turnbased_RPG_ConsoleApp
             public string name;
 
             Action<Actor> turnAction;
+            Action<Actor> recoverAction;
             int minPossibleTurns = 1;
             int maxPossibleTurns = 8;
 
@@ -111,10 +112,10 @@ namespace Turnbased_RPG_ConsoleApp
             string inflictText = "{0} isn't feeling well";
             string removeText = "{0} went back to normal";
 
-            public Type(string n, int minPT, int maxPT, Action<Actor> action, string iText = "{0} isn't feeling well", string rtext = "{0} went back to normal")
+            public Type(string n, int minPT, int maxPT, Action<Actor> tAction, string iText = "{0} isn't feeling well", string rtext = "{0} went back to normal", Action<Actor> recAction = null)
             {
                 name = n;
-                turnAction = action;
+                turnAction = tAction;
 
                 if (maxPT < 0)
                     maxPT = int.MaxValue;
@@ -124,6 +125,8 @@ namespace Turnbased_RPG_ConsoleApp
 
                 inflictText = iText;
                 removeText = rtext;
+
+                recoverAction = recAction;
             }
             public Type(Type dupe)
             {
@@ -134,10 +137,11 @@ namespace Turnbased_RPG_ConsoleApp
                 maxPossibleTurns = dupe.maxPossibleTurns;
 
                 removeText = dupe.removeText;
+                recoverAction = dupe.recoverAction;
             }
 
 
-            public bool TryInflict(Actor target, int duration = -1, bool showInflictText = true)
+            public bool TryInflict(Actor target, int duration = -1, bool showInflictText = true, bool performImmediately = false)
             {
                 Thread.Sleep(TimeSpan.FromSeconds(0.01));//For randomizing
                 target.statusEffects.RemoveAll((m) => m == null);
@@ -161,6 +165,13 @@ namespace Turnbased_RPG_ConsoleApp
                         print(string.Format(inflictText, target.name));
                         Console.ForegroundColor = ConsoleColor.White;
                     }
+
+                    if(performImmediately)
+                    {
+                        PerformAction(target);
+                        turnsActive--;
+                    }
+
                 }
                 else if (alreadyInflicted)
                     print(target.name + " is already " + name.ToLower());
@@ -175,7 +186,7 @@ namespace Turnbased_RPG_ConsoleApp
                 turnsActive++;
                 //Check for duration at the end of turn
             }
-            public void TryRemoveEffect(Actor target, bool forceRemove = false)
+            public void TryRemoveEffect(Actor target, bool forceRemove = false, bool activateRecoverAction = true)
             {
                 if (turnsActive >= turnLimit || forceRemove)
                 {
@@ -184,6 +195,9 @@ namespace Turnbased_RPG_ConsoleApp
                     Console.ForegroundColor = ConsoleColor.Blue;
                     print(string.Format(removeText, target.name));
                     Console.ForegroundColor = ConsoleColor.White;
+
+                    if (activateRecoverAction && recoverAction != null)
+                        recoverAction.Invoke(target);
                 }
             }
 

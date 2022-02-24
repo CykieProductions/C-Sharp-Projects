@@ -8,6 +8,15 @@ namespace Turnbased_RPG_ConsoleApp
 {
     public class Program : Basic
     {
+        public static List<Hero> fullHeroList;
+        public static Hero GetHeroByName(string n)
+        {
+            return fullHeroList.Find(x => x.name == n);
+        }
+        public static List<Hero> curHeroes;
+        public static Enemy decidingEnemy;
+        public static Actor actingActor;
+
         public static void SaveAllData(int slotNum, Hero[] allHeroes)
         {
             for (int i = 0; i < allHeroes.Length; i++)
@@ -15,7 +24,11 @@ namespace Turnbased_RPG_ConsoleApp
                 SaveLoad.Save(allHeroes[i].GetStats(), slotNum, $"{allHeroes[i].name} Stats");
             }
 
-            //SaveLoad.Save(WorldManager.curArea.encounters[0], slotNum, "Encounter Test");
+            WorldManager.curArea.eventsTriggeredState = new bool[WorldManager.curArea.events.Count];
+            for (int i = 0; i < WorldManager.curArea.events.Count; i++)//Save if event was triggered
+            {
+                WorldManager.curArea.eventsTriggeredState[i] = WorldManager.curArea.events[i].alreadyDone;
+            }
             SaveLoad.Save(new Tuple<WorldManager.Area, int> (WorldManager.curArea, WorldManager.areaProgress), slotNum, "Current Area");
 
             WorldManager.visitedAreas[WorldManager.visitedAreas.FindIndex(x => x.name == WorldManager.curArea.name)] = WorldManager.curArea;//match the data
@@ -34,7 +47,17 @@ namespace Turnbased_RPG_ConsoleApp
             }
 
             Tuple<WorldManager.Area, int> loadedArea = SaveLoad.Load<Tuple<WorldManager.Area, int>>(slotNum, "Current Area");
-            WorldManager.curArea = loadedArea.Item1;
+            var curArea = loadedArea.Item1;
+            curArea.events = new List<(int progressIndex, Action action, bool alreadyDone)>();
+            if (WorldManager.GetAreaByName(curArea.name).events != null)
+            {
+                for (int i = 0; i < curArea.eventsTriggeredState.Length; i++)
+                {
+                    curArea.events.Add( (WorldManager.GetAreaByName(curArea.name).events[i].progressIndex, WorldManager.GetAreaByName(curArea.name).events[i].action, curArea.eventsTriggeredState[i]) );
+                }
+            }
+            WorldManager.curArea = curArea;
+
             WorldManager.areaProgress = loadedArea.Item2;
 
             var visitedAreas = WorldManager.visitedAreas = SaveLoad.Load<List<WorldManager.Area>>(slotNum, "Visited Areas");
@@ -57,8 +80,9 @@ namespace Turnbased_RPG_ConsoleApp
 
             Hero[] allHeroes = new Hero[]
             {
-                new Hero("Cyclone", 1, Element.NONE, mhp: 28, mcp: 16, atk: 5, def: 1, spAtk: 1, spd: 2, inxp: 4, growthScalar: 1.75f, skillDict: new Dictionary<int, SkillBase>()
+                new Hero("Cyclone", 1, Element.NONE, mhp: 28, mcp: 16, atk: 5, def: 1, spAtk: 1, spd: 2, inxp: 4, growthScalar: 2.2f/*1.75f*/, skillDict: new Dictionary<int, SkillBase>()
                 {
+                    [0] = SkillManager.Scan_Lash,
                     [2] = SkillManager.Healing_Powder,
                     [4] = SkillManager.Wind_Slash,
                     [6] = SkillManager.Curing_Powder,
@@ -66,9 +90,9 @@ namespace Turnbased_RPG_ConsoleApp
 
                     [11] = SkillManager.Slash_Storm,
                     [12] = SkillManager.Super_Healing_Powder,
-                    [14] = SkillManager.Charge_Bolt,
                     [15] = SkillManager.Curing_Cloud,
 
+                    [16] = SkillManager.Charge_Bolt,
                     [17] = SkillManager.Air_Cannon,
                     [18] = SkillManager.Pheonix_Powder,
                     [20] = SkillManager.Sky_Crusher,
@@ -95,28 +119,18 @@ namespace Turnbased_RPG_ConsoleApp
 
             List<Hero> heroes = new List<Hero>();
             heroes.Add(allHeroes[0]);
-            heroes.Add(allHeroes[1]);
-            heroes[1].skills.Add(SkillManager.Restore_CP_Allies_Test);
             heroes[0].skills.Add(SkillManager.Scan_Lash);
+            /*heroes.Add(allHeroes[1]);
+            heroes[1].skills.Add(SkillManager.Restore_CP_Allies_Test);
             heroes[0].skills.Add(SkillManager.Pebble_Blast);
             heroes[0].skills.Add(SkillManager.Rock_Slide);
             heroes[0].skills.Add(SkillManager.Spire_Wall);
             heroes[0].skills.Add(SkillManager.Earthquake);
             heroes[0].skills.Add(SkillManager.Flame_Burst);
-            heroes[0].skills.Add(SkillManager.Eruption);
+            heroes[0].skills.Add(SkillManager.Eruption);*/
 
             //heroes.Add(new Hero("Shady", 1, Element.PLANT, 30, 9, 6, spd: 1));
-            /*heroes.Add(new Hero("Foo", 1, Element.NONE, 12, 20, 3, spd: 0, inxp: 3, growthScalar: 3.2f, skillDict: new Dictionary<int, SkillBase>()
-            {
-                [3] = SkillManager.Fireball,
-                [7] = SkillManager.Healing_Powder,
-                [12] = SkillManager.Flare_Fall,
-                [16] = SkillManager.Flame_Burst,
-                [25] = SkillManager.Blazing_Vortex,
-                [34] = SkillManager.Eruption,
-                [42] = SkillManager.Supernova,
-            }));*/
-            heroes[0].exp = 5000;
+            //heroes[0].exp = 5000;
             /*heroes[0].LearnSkill(SkillManager.Healing_Powder);
             heroes[0].LearnSkill(SkillManager.Super_Healing_Powder);
             heroes[0].LearnSkill(SkillManager.Ultra_Healing_Powder);
@@ -153,6 +167,7 @@ namespace Turnbased_RPG_ConsoleApp
 
             while (gameIsRunning)
             {
+                fullHeroList = allHeroes.ToList();
                 bool HeroChooseTarget(Hero hero, List<Actor> targetPool = null)
                 {
                     if (targetPool == null)
@@ -340,7 +355,8 @@ namespace Turnbased_RPG_ConsoleApp
                     bool result = false;
                     if (target.hp <= 0)
                     {
-                        target.nextAction = null;
+                        if(target is Hero)
+                            target.nextAction = null;//Don't mess with special enemy AI
                         //target.targets.Clear();//causes issues if you down yourself
 
                         target.Defeat();//Heroes aren't considered fully defeated until here
@@ -421,7 +437,10 @@ namespace Turnbased_RPG_ConsoleApp
                 {
                     /*Console.ForegroundColor = ConsoleColor.Black;
                     Console.BackgroundColor = ConsoleColor.White;*/
-                    print($"Location: {WorldManager.curArea.name} | Battles left: {WorldManager.curArea.encounters.Count - WorldManager.areaProgress}");
+                    if (curHeroes != null)
+                        heroes = curHeroes;//for setting new heroes through world event
+
+                    print($"Location: {WorldManager.curArea.name} | Progress: {WorldManager.curArea.encounters.Count - WorldManager.areaProgress}/{WorldManager.curArea.encounters.Count}");
                     print("1. NEXT BATTLE  2. CONRA  3. STATS  4. WARP  S. SAVE  L. LOAD  Q. QUIT\t");
                     /*Console.ForegroundColor = ConsoleColor.White;
                     Console.BackgroundColor = ConsoleColor.Black;*/
@@ -603,6 +622,7 @@ namespace Turnbased_RPG_ConsoleApp
                     List<Hero> activeHeroes = new List<Hero>();
                     for (int h = 0; h < heroes.Count; h++)
                     {
+                        heroes[h].isGuarding = true;//Why?
                         if (heroes[h].hp > 0)
                         {
                             heroes[h].isDefeated = false;
@@ -617,6 +637,7 @@ namespace Turnbased_RPG_ConsoleApp
                             }
                         }
                     }
+                    curHeroes = heroes;//give everything access to this list (namely advance AI)
 
                     #region HERO CHOICE LOGIC
                     for (int i = 0; i < heroes.Count; i++)//Heroes are choosing
@@ -631,11 +652,11 @@ namespace Turnbased_RPG_ConsoleApp
 
                             print("What will " + hero.name + " do?");
                             print("HP: " + hero.hp + " | CP: " + hero.cp);
-
-                            if (hero == activeHeroes[0])
-                                print("1. ATTACK  2. CONRA  f. FLEE");
-                            else
-                                print("1. ATTACK  2. CONRA");
+                            
+                            print("1. ATTACK  2. CONRA  3. GUARD", true);
+                            if (hero == activeHeroes[0])//only the first active hero can run
+                                print("  f. FLEE", true);
+                            print("");
 
                             input = Console.ReadLine();
 
@@ -661,7 +682,7 @@ namespace Turnbased_RPG_ConsoleApp
                                         choseTarget = false;
                                         /*while (!choseTarget)//This line prevents canceling this action until next party member
                                         {*/
-                                            choseTarget = HeroChooseTarget(hero);
+                                            choseTarget = HeroChooseTarget(hero);//targeting decision happens here now
                                             if (choseTarget)
                                                 choseTurnAction = true;
                                         //}
@@ -670,6 +691,11 @@ namespace Turnbased_RPG_ConsoleApp
 
                                     case 2://skill menu
                                         DisplaySkillMenu(hero);
+                                        break;
+
+                                    case 3://guard
+                                        hero.nextAction = SkillManager.Guard;
+                                        choseTurnAction = true;
                                         break;
 
                                     default://skip turn
@@ -721,59 +747,118 @@ namespace Turnbased_RPG_ConsoleApp
                     for (int i = 0; i < enemies.Count; i++)//Enemies are choosing
                     {
                         //enemies[i].nextAction = SkillManager.Attack;
+                        decidingEnemy = enemies[i];
                         enemies[i].nextAction = enemies[i].decideTurnAction.Invoke();
                         enemies[i].ChooseTarget(heroes.ToList<Actor>(), enemies[i].nextAction.targetType);
                         //enemies[i].Attack(heroes[RandomInt(0, heroes.Count - 1)]);
                         Thread.Sleep(TimeSpan.FromSeconds(0.01));
                     }
 
-                    Actor[] allActors = new Actor[heroes.Count + enemies.Count];
-                    #region DETERMINE THE TURN ORDER
-                    for (int ei = 0; ei < allActors.Length; ei++)
-                    {
-                        int fastestSpeed = 0;
-
-                        for (int i = 0; i < heroes.Count; i++)//compare the hero speeds
+                    Actor[] allActors = new Actor[heroes.Count + enemies.Count];//Start blank then fill up
+                    //#region DETERMINE THE TURN ORDER
+                    {//keep unorderedActors within this scope
+                        List<Actor> unorderedActors = heroes.ToList<Actor>().Concat(enemies.ToList<Actor>()).ToList();
+                        for (int ei = 0; ei < allActors.Length; ei++)
                         {
-                            if (allActors.Contains(heroes[i]))
-                                continue;
+                            int fastestSpeed = 0;
+                            int prioritizedSpeed;
 
-                            if (allActors[ei] == null || heroes[i].speed > fastestSpeed)
+                            for (int i = 0; i < unorderedActors.Count; i++)//compare the speeds
                             {
-                                fastestSpeed = heroes[i].speed;
-                                allActors[ei] = heroes[i];
+                                if (allActors.Contains(unorderedActors[i]))
+                                    continue;
+
+                                unorderedActors[i].isGuarding = false;
+                                prioritizedSpeed = unorderedActors[i].speed;
+
+                                if (unorderedActors[i].nextAction?.priority > 0)
+                                    prioritizedSpeed = int.MaxValue;
+                                else if (unorderedActors[i].nextAction?.priority < 0)
+                                    prioritizedSpeed = int.MinValue;
+
+                                if (allActors[ei] == null || prioritizedSpeed > fastestSpeed)
+                                {
+                                    fastestSpeed = prioritizedSpeed;
+                                    allActors[ei] = unorderedActors[i];
+                                }
+                                else if (prioritizedSpeed == fastestSpeed)//Decide if they win the speed tie by a coin flip
+                                {
+                                    var r = RandomInt(0, 1);
+                                    //print("Coin Flip: " + r);
+                                    if (unorderedActors[i].nextAction?.priority >= 2)//Guarding wins by default
+                                        r = 1;
+
+                                    if (r == 1)
+                                        allActors[ei] = unorderedActors[i];
+                                }
                             }
-                            else if (heroes[i].speed == fastestSpeed)//Decide if they win the speed tie by a coin flip
+
+                            #region Replaced Code
+                            /*for (int i = 0; i < heroes.Count; i++)//compare the hero speeds
                             {
-                                var r = RandomInt(0, 1);
-                                //print("Coin Flip: " + r);
-                                if (r == 1)
+                                if (allActors.Contains(heroes[i]))
+                                    continue;
+
+                                heroes[i].isGuarding = false;
+                                prioritizedSpeed = heroes[i].speed;
+
+                                if (heroes[i].nextAction?.priority > 0)
+                                    prioritizedSpeed = int.MaxValue;
+                                else if (heroes[i].nextAction?.priority < 0)
+                                    prioritizedSpeed = int.MinValue;
+
+                                if (allActors[ei] == null || prioritizedSpeed > fastestSpeed)
+                                {
+                                    fastestSpeed = prioritizedSpeed;
                                     allActors[ei] = heroes[i];
-                            }
-                        }
+                                }
+                                else if (prioritizedSpeed == fastestSpeed)//Decide if they win the speed tie by a coin flip
+                                {
+                                    var r = RandomInt(0, 1);
+                                    //print("Coin Flip: " + r);
+                                    if (heroes[i].nextAction?.priority >= 2)//Guarding wins by default
+                                        r = 1;
 
-                        for (int i = 0; i < enemies.Count; i++)//compare the enemy speeds
-                        {
-                            if (allActors.Contains(enemies[i]))
-                                continue;
-
-                            if (enemies[i].speed > fastestSpeed)
-                            {
-                                fastestSpeed = enemies[i].speed;
-                                allActors[ei] = enemies[i];
+                                    if (r == 1)
+                                        allActors[ei] = heroes[i];
+                                }
                             }
-                            else if (enemies[i].speed == fastestSpeed)//Decide if they win the speed tie by a coin flip
+
+                            for (int i = 0; i < enemies.Count; i++)//compare the enemy speeds
                             {
-                                var r = RandomInt(0, 1);
-                                //print("Coin Flip: " + r);
-                                if (r == 1)
+                                if (allActors.Contains(enemies[i]))
+                                    continue;
+
+                                enemies[i].isGuarding = false;
+                                prioritizedSpeed = enemies[i].speed;
+
+                                if (enemies[i].nextAction.priority > 0)
+                                    prioritizedSpeed = int.MaxValue;
+                                else if (enemies[i].nextAction.priority < 0)
+                                    prioritizedSpeed = int.MinValue;
+
+
+                                if (allActors[ei] == null || prioritizedSpeed > fastestSpeed)
+                                {
+                                    fastestSpeed = prioritizedSpeed;
                                     allActors[ei] = enemies[i];
-                            }
-                        }
+                                }
+                                else if (prioritizedSpeed == fastestSpeed)//Decide if they win the speed tie by a coin flip
+                                {
+                                    var r = RandomInt(0, 1);
+                                    //print("Coin Flip: " + r);
+                                    if (enemies[i].nextAction.priority >= 2)
+                                        r = 1;
 
-                        //print(allActors[ei].name + " has a speed of " + allActors[ei].speed);
+                                    if (r == 1)
+                                        allActors[ei] = enemies[i];
+                                }
+                            }*/
+                            #endregion
+                            //print(allActors[ei].name + " has a speed of " + allActors[ei].speed);
+                        }
                     }
-                    #endregion
+                    //#endregion
 
                     #region PLAY TURN
                     for (int i = 0; i < allActors.Length; i++)
@@ -781,6 +866,7 @@ namespace Turnbased_RPG_ConsoleApp
                         if (!isInBattle)
                             break;
                         var curActor = allActors[i];
+                        actingActor = curActor;
                         if (curActor.hp <= 0)//skip actors that were defeated before their turn
                             continue;
 
@@ -906,7 +992,8 @@ namespace Turnbased_RPG_ConsoleApp
                         }
 
                         //Make sure actions don't carry over into next turn
-                        curActor.nextAction = null;
+                        if(curActor is Hero)//don't get in the way of special enemy ai
+                            curActor.nextAction = null;
                         curActor.targets.Clear();
                         curActor.statusEffects.RemoveAll((m) => m == null);
 
@@ -916,7 +1003,7 @@ namespace Turnbased_RPG_ConsoleApp
                         {
                             for (int se = 0; se < curActor.statusEffects.Count; se++)
                             {
-                                curActor.statusEffects[se].TryRemoveEffect(curActor);
+                                curActor.statusEffects[se].TryRemoveEffect(curActor, false, true);
                             }
                         }
                         //

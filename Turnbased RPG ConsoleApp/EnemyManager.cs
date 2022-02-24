@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-//using static Turnbased_RPG_ConsoleApp.Basic;
+using static Turnbased_RPG_ConsoleApp.Basic;
 
 namespace Turnbased_RPG_ConsoleApp
 {
@@ -90,6 +90,13 @@ namespace Turnbased_RPG_ConsoleApp
                         enemies.Add(new Enemy(enemyStats[i]));
                     }
                 }
+                else if (enemies != null)
+                {
+                    for (int i = 0; i < enemies.Count; i++)
+                    {
+                        enemies[i] = new Enemy(enemies[i]);//get a fresh version of the enemy
+                    }
+                }
 
                 if (enemies != null)
                     numOfEnemies = enemies.Count;
@@ -102,7 +109,7 @@ namespace Turnbased_RPG_ConsoleApp
             }
         }
 
-        public static Enemy GetEnemy(string name, List<Actor> heroes, int lv = -1, int eRate = 50)
+        public static Enemy GetEnemy(string name, List<Actor> heroes, int lv = -1, int eRate = 50, int[] sRange = null)
         {
             var request = enemyList.Find((x) => x.name == name);
             if (request == null)
@@ -128,6 +135,18 @@ namespace Turnbased_RPG_ConsoleApp
             enemy.expYield = (int)(enemy.baseExp + dif + (levelBonus * 0.8f));
 
             enemy.encounterWeight = eRate;
+            if (sRange == null)
+            {
+                enemy.spawnRange = new int[2] { 0, int.MaxValue };
+            }
+            else
+            {
+                enemy.spawnRange = sRange;
+                if (sRange[0] > sRange[1])
+                    enemy.spawnRange[0] = sRange[1];
+                if (sRange[1] < sRange[0])
+                    enemy.spawnRange[1] = sRange[0];
+            }
 
             //Higher levels can ge better skills
             if (enemy.skillDictionary != null)
@@ -188,6 +207,104 @@ namespace Turnbased_RPG_ConsoleApp
             {
                 SkillManager.Charge_Bolt,
                 SkillManager.Waste_Short_Circut
+            }));
+
+            var leviac = new Enemy("Leviac", lv: 10, elmt: Element.WATER, mhp: 250, mcp: 80, atk: 5, def: 1, spAtk: 9, spd: 1, exp: 78, new List<SkillBase>()
+            {
+                SkillManager.Geo_Shift,
+                new Skill<Actor, Actor>("Bite", (user, target) => {
+                    print($"{user.name} bit {target.name}");
+                    target.ModifyHealth(-SkillManager.BasicAttackFormula(user, 2));
+                }, elmt: Element.NONE),
+                new Skill<Actor, Actor>("Bite", (user, target) => {
+                    print($"{user.name} bit {target.name}");
+                    target.ModifyHealth(-SkillManager.BasicAttackFormula(user, 2));
+                }, elmt: Element.NONE),
+                SkillManager.Water_Pulse,
+                SkillManager.Water_Pulse,
+                SkillManager.Poison_Cloud,
+                SkillManager.Waste_Roar,
+                new Skill<Actor>("Dive", (user) => {
+                    print($"{user.name} dove underwater");
+                    for (int i = 0; i < user.statusEffects.Count; i++)
+                    {
+                        user.statusEffects[i].TryRemoveEffect(user, true);
+                    }
+
+                    new StatusEffect.Type("SUBMERGED", 2, 3, (x) =>
+                    {
+                        user.element = new Element.Type(Element.WATER);//New element that acts like WATER, but dodges everything except ELECTRIC
+                        user.element.unfazedBy.Add(Element.NONE);
+                        //user.element.unfazedBy.Add(Element.IGNORE_ALL);
+                        user.element.unfazedBy.Add(Element.FIRE);
+                        user.element.unfazedBy.Add(Element.WATER);
+                        user.element.unfazedBy.Add(Element.PLANT);
+                        user.element.unfazedBy.Add(Element.GROUND);
+                        user.element.unfazedBy.Add(Element.AIR);
+
+                        Console.ForegroundColor = ConsoleColor.Magenta;
+                        print($"{user.name} is submerged");
+                        Console.ForegroundColor = ConsoleColor.White;
+                        user.nextAction = new Skill<Actor>("Preparing",(y) => print($"{user.name} is preparing something"), pri: 2);
+
+                        if (Chance(2, 3))
+                            user.ModifyConra((int)(user.maxCp * 0.25f));
+                    },"DONT SHOW THIS", "{0} resurfaced", (x) => 
+                    { user.element = Element.WATER; user.nextAction = SkillManager.Hydo_Cannon; SkillManager.Hydo_Cannon.Use(user, Program.curHeroes[RandomInt(0, Program.curHeroes.Count - 1)]); }).TryInflict(user, showInflictText: false, performImmediately: true);
+
+                }, elmt: Element.WATER),
+                new Skill<Actor>("Dive", (user) => {
+                    print($"{user.name} dove underwater");
+                    for (int i = 0; i < user.statusEffects.Count; i++)
+                    {
+                        user.statusEffects[i].TryRemoveEffect(user, true);
+                    }
+
+                    new StatusEffect.Type("SUBMERGED", 2, 3, (x) =>
+                    {
+                        user.element = new Element.Type(Element.WATER);//New element that acts like WATER, but dodges everything except ELECTRIC
+                        user.element.unfazedBy.Add(Element.NONE);
+                        //user.element.unfazedBy.Add(Element.IGNORE_ALL);
+                        user.element.unfazedBy.Add(Element.FIRE);
+                        user.element.unfazedBy.Add(Element.WATER);
+                        user.element.unfazedBy.Add(Element.PLANT);
+                        user.element.unfazedBy.Add(Element.GROUND);
+                        user.element.unfazedBy.Add(Element.AIR);
+
+                        Console.ForegroundColor = ConsoleColor.Magenta;
+                        print($"{user.name} is submerged");
+                        Console.ForegroundColor = ConsoleColor.White;
+                        user.nextAction = new Skill<Actor>("Preparing",(y) => print($"{user.name} is preparing something"), pri: 2);
+
+                        if (Chance(2, 3))
+                            user.ModifyConra((int)(user.maxCp * 0.25f));
+                    },"DONT SHOW THIS", "{0} resurfaced", (x) => 
+                    { user.element = Element.WATER; user.nextAction = SkillManager.Hydo_Cannon; SkillManager.Hydo_Cannon.Use(user, Program.curHeroes[RandomInt(0, Program.curHeroes.Count - 1)]); }).TryInflict(user, showInflictText: false, performImmediately: true);
+
+                }, elmt: Element.WATER)
+            });
+            enemyList.Add(new Enemy(leviac, ai: () =>
+            {
+                var skillPool = leviac.skills.ToList();//copy of the list
+                if (Program.decidingEnemy.nextAction?.skillName == SkillManager.Hydo_Cannon.skillName)
+                {
+                    skillPool.RemoveAll(x => x.skillName == "Dive");//don't dive twice in a row
+                }
+                
+                //Program.curHeroes;//test
+                foreach (var skill in leviac.skills)
+                {
+                    if (skill == SkillManager.Attack && Chance(3, 3))//Don't normal attack
+                        skillPool.Remove(SkillManager.Attack);
+                    else if (skill.skillCost > leviac.cp && Chance(1, 2))//Leaves a small chance to use a skill that costs too much
+                        skillPool.Remove(skill);
+                }
+
+                var randInt = RandomInt(0, skillPool.Count - 1);
+                //don't leave an increased chance for a basic attack on this enemy
+
+                return skillPool[randInt];
+
             }));
         }
     }

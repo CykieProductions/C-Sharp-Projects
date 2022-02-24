@@ -46,12 +46,35 @@ namespace Turnbased_RPG_ConsoleApp
         {
             float mult = 1;
 
+            if(target.element.unfazedBy.Contains(attackType))//For special elemments only
+            {
+                mult = float.NegativeInfinity;
+                Console.ForegroundColor = ConsoleColor.Magenta;
+                Basic.print("It was completely ineffective");
+                Console.ForegroundColor = ConsoleColor.White;
+            }
+
             if (attackType.effectiveAgainst.Contains(target.element))
+            {
                 mult = 1.75f;
+                Console.ForegroundColor = ConsoleColor.Magenta;
+                Basic.print("It was a critial hit!");
+                Console.ForegroundColor = ConsoleColor.White;
+            }
             else if (attackType.ineffectiveAgainst.Contains(target.element))
+            {
                 mult = 0.5f;
+                Console.ForegroundColor = ConsoleColor.Magenta;
+                Basic.print("It wasn't that effective");
+                Console.ForegroundColor = ConsoleColor.White;
+            }
             else if (attackType.uselessAgainst.Contains(target.element))
+            {
                 mult = 0;
+                Console.ForegroundColor = ConsoleColor.Magenta;
+                Basic.print("It was completely ineffective");
+                Console.ForegroundColor = ConsoleColor.White;
+            }
 
             return mult;
         }
@@ -137,6 +160,8 @@ namespace Turnbased_RPG_ConsoleApp
             public List<Type> ineffectiveAgainst = new List<Type>();
             public List<Type> uselessAgainst = new List<Type>();
 
+            public List<Type> unfazedBy = new List<Type>();
+
             /*public Type type { get { return _type; } }
             public List<Type> strengths { get { return _strengths; } }
             public List<Type> weaknesses { get { return _weaknesses; } }*/
@@ -147,6 +172,14 @@ namespace Turnbased_RPG_ConsoleApp
                 effectiveAgainst = strengths;
                 ineffectiveAgainst = weaknesses;
             }*/
+
+            public Type(){}
+            public Type(Type dupe)
+            {
+                effectiveAgainst = dupe.effectiveAgainst;
+                ineffectiveAgainst = dupe.ineffectiveAgainst;
+                uselessAgainst = dupe.uselessAgainst;
+            }
         }
     }
 }
