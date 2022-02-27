@@ -44,7 +44,9 @@ namespace CysmicEngine.Demo_Game
     {
         public InputController ic;
         public Rigidbody2D rb;
-        public float speed = 10f;
+        public Animator anim;
+        public SpriteRenderer gfx;
+        public float speed = 8f;
 
         public float jumpForce = 6;
         public float jumpHoldLimit = 0.4f;
@@ -53,32 +55,57 @@ namespace CysmicEngine.Demo_Game
 
         public Collider2D groundDetector;
         private bool isJumping;
+        bool isSprinting;
 
         protected override void Start()
         {
             base.Start();
-            TryGetComponent(out ic);
-            TryGetComponent(out rb);
-
-            groundDetector = gameObject.AddComponent(new Collider2D((3, 28), (26, 4), true));
+            gameObject.TryGetComponent(out ic);
+            gameObject.TryGetComponent(out rb);
+            gameObject.TryGetComponent(out anim);
+            gameObject.TryGetComponent(out gfx);
+            //transform.scale = (1, 1);
+            groundDetector = gameObject.AddComponent(new Collider2D((3, 28), (26, 4), isTrig: true, _scaleToTransform: true));
         }
         protected override void Update()
         {
             base.Update();
             float moddedSpeed = speed;
-            if (Input.HoldingKey(Keys.ShiftKey))
-                moddedSpeed = speed * 2;
+            if (!Input.HoldingKey(Keys.ShiftKey))
+                isSprinting = false;
+            else if ((Input.HoldingKey(Keys.ShiftKey) && isGrounded) || isSprinting)
+            {
+                moddedSpeed = speed * 1.8f;
+                isSprinting = true;
+            }
 
             isGrounded = groundDetector.IsTouching("Ground");
+            
+            rb.velocity = (Lerp(rb.velocity.x, ic.movement.x * moddedSpeed, 0.25f), rb.velocity.y);
 
-            if (rb != null)
+            if(ic.movement.x > 0)
             {
-                //_realXVel = Lerp(_realXVel, velocity.x, 0.25f);//Smooth move
-                rb.velocity = (Lerp(rb.velocity.x, ic.movement.x * moddedSpeed, 0.25f), rb.velocity.y);
+                gfx.flipX = false;
+            }
+            else if (ic.movement.x < 0)
+            {
+                gfx.flipX = true;
+            }
+
+            if(isGrounded)
+            {
+                if(ic.movement.x != 0)
+                    anim?.Play("Run", loop: true);
+                else
+                    anim?.Play("Idle", loop: true);
             }
             else
-                transform.Translate((ic.movement.x * Time.deltaTime * moddedSpeed, ic.movement.y * Time.deltaTime * moddedSpeed));
-            //print(rb.velocity.x);
+            {
+                if(rb.velocity.y > 0)
+                    anim?.Play("Jump", loop: true);
+                else
+                    anim?.Play("Fall", loop: true);
+            }
 
             if (isJumping && (rb.velocity.y <= 0 || jumpHoldTimer >= jumpHoldLimit || !Input.HoldingKey(Keys.Space)))
             {

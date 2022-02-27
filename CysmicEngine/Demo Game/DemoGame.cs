@@ -12,7 +12,9 @@ namespace CysmicEngine.Demo_Game
     class DemoGame : CysmicGame
     {
         public Transform player;
+        public Transform cursorObj;
         public Transform floor;
+        public Transform box;
         //public Transform camGizmo;
 
         public DemoGame() : base(new Vector2(800, 450), "Cysmic Engine Demo")
@@ -23,41 +25,104 @@ namespace CysmicEngine.Demo_Game
         public override void OnStart()
         {
             prevNow = DateTime.UtcNow;
-            player = new GameObject("Player", trnfrm: new Transform
-                ((game.window.Size.Width / 2, (game.window.Size.Height / 2) - 50), (1, 1), 0)
-                , components: new List<Component>()
+
+
+            /*var b = new Bitmap("Main Characters/Virtual Guy/Jump (32x32).png");
+            var c = new Animator.AnimationClip(_frames: new (Bitmap, float)[]
+                    {
+                        (new Bitmap("Main Characters/Virtual Guy/Jump (32x32).png"), 0),
+                        (new Bitmap("Main Characters/Virtual Guy/Fall (32x32).png"), 0)
+                    });*/
             {
+                var idleCycle = new SpriteSheet(@"Assets/Sprites/Main Characters/Virtual Guy/Idle (32x32).png", new Vector2Int(32, 32));
+                var runCycle = new SpriteSheet(@"Assets/Sprites/Main Characters/Virtual Guy/Run (32x32).png", new Vector2Int(32, 32));
+
+                player = new GameObject("Player", trnfrm: new Transform
+                    ((game.window.Size.Width / 2, (game.window.Size.Height / 2) - 50), scl: (32, 32), 0)
+                    , components: new List<Component>()
+                {
                 new SpriteRenderer("Main Characters/Virtual Guy/Fall (32x32)", 50),
                 new PlayerMotor(),
                 new InputController(),
                 new Rigidbody2D(),
-                new Collider2D(os: (2, 2) , (28, 28)),
+                new Collider2D(os: (2, 2) , (28, 28), _scaleToTransform: true),
+                new Animator(new Dictionary<string, Animator.AnimationClip>()
+                {
+                    ["Idle"] = new Animator.AnimationClip(_frames: new (Sprite, float)[]
+                    {
+                        (idleCycle.GetSliceByName("0"), 0),
+                        (idleCycle.GetSliceByName("1"), 0),
+                        (idleCycle.GetSliceByName("2"), 0),
+                        (idleCycle.GetSliceByName("3"), 0),
+                        (idleCycle.GetSliceByName("4"), 0),
+                        (idleCycle.GetSliceByName("5"), 0),
+                        (idleCycle.GetSliceByName("6"), 0),
+                        (idleCycle.GetSliceByName("7"), 0),
+                        (idleCycle.GetSliceByName("8"), 0),
+                        (idleCycle.GetSliceByName("9"), 0),
+                        (idleCycle.GetSliceByName("10"), 0),
+                    }),
+                    ["Run"] = new Animator.AnimationClip(_frames: new (Sprite, float)[]
+                    {
+                        (runCycle.GetSliceByName("0"), 0),
+                        (runCycle.GetSliceByName("1"), 0),
+                        (runCycle.GetSliceByName("2"), 0),
+                        (runCycle.GetSliceByName("3"), 0),
+                        (runCycle.GetSliceByName("4"), 0),
+                        (runCycle.GetSliceByName("5"), 0),
+                        (runCycle.GetSliceByName("6"), 0),
+                        (runCycle.GetSliceByName("7"), 0),
+                        (runCycle.GetSliceByName("8"), 0),
+                        (runCycle.GetSliceByName("9"), 0),
+                        (runCycle.GetSliceByName("10"), 0),
+                        (runCycle.GetSliceByName("11"), 0),
+                    }),
+                    ["Jump"] = new Animator.AnimationClip(_frames: new (Sprite, float)[]
+                    {
+                        (new Sprite(@"Assets/Sprites/Main Characters/Virtual Guy/Jump (32x32).png"), 1)
+                    }),
+                    ["Fall"] = new Animator.AnimationClip(_frames: new (Sprite, float)[]
+                    {
+                        (new Sprite(@"Assets/Sprites/Main Characters/Virtual Guy/Fall (32x32).png"), 0)
+                    })
+                })
+                }
+                ).transform;
             }
-            ).transform;
             player.transform.isStatic = false;
             player.isStatic = false;
-            if (player.TryGetComponent(out Rigidbody2D someRB))
+            if (player.gameObject.TryGetComponent(out Rigidbody2D someRB))
             {
-                someRB.gravScale = 3;
+                someRB.gravScale = 5;
                 //someRB.isPushable = false;
             }
 
-            var box = new GameObject("Box", trnfrm: new Transform
-                ((game.window.Size.Width / 2, (game.window.Size.Height / 2) - 90), (1, 1), 0)
+            //Input.showCursor = false;
+            cursorObj = new GameObject("Cursor", trnfrm: new Transform
+                ((game.window.Size.Width / 2, (game.window.Size.Height / 2) - 90), scl: (8, 8), 0)
                 , components: new List<Component>()
             {
                 //new SpriteRenderer("Main Characters/Virtual Guy/Fall (32x32)", 50),
-                new Shape2D(Color.Red, size: (32,32), offset: Vector2.Zero, srtOdr: -5),
+                new Shape2D(Color.HotPink, size: (1,1), offset: Vector2.Zero, srtOdr: int.MaxValue),
+                new Shape2D(Color.DarkRed, size: (1.25f,1.25f), offset: (-1.75f, -1.75f), srtOdr: int.MaxValue -1),
+            }).transform;
+
+            box = new GameObject("Box", trnfrm: new Transform
+                ((game.window.Size.Width / 2, (game.window.Size.Height / 2) - 90), scl: (32, 32), 0)
+                , components: new List<Component>()
+            {
+                //new SpriteRenderer("Main Characters/Virtual Guy/Fall (32x32)", 50),
+                new Shape2D(Color.Red, size: (1,1), offset: Vector2.Zero, srtOdr: -5),
                 //new PlayerMotor(),
                 //new InputController(),
                 new Rigidbody2D(),
-                new Collider2D((0, 0), (32, 32), isTrig: false),
+                new Collider2D((0, 0), (1,1), isTrig: false),
                 //new Collider2D(Vector2.Zero, (10, 10)),
             }, lyr: "Ground"
             ).transform;
             box.transform.isStatic = false;
             box.isStatic = false;
-            if (box.TryGetComponent(out someRB))
+            if (box.gameObject.TryGetComponent(out someRB))
             {
                 someRB.gravScale = 3;
             }
@@ -138,7 +203,28 @@ namespace CysmicEngine.Demo_Game
         public override void LateUpdate()
         {
             base.LateUpdate();
-            //CountFPS();
+            CountFPS();
+
+            Cam.Follow(player.position + (player.scale.x / 2, player.scale.y / 2));
+            cursorObj.position = Input.GetMousePosition(true);// + (box.scale.x / 2, box.scale.y);
+            Cam.zoom += Input.GetMouseScroll() * 0.08f * Time.deltaTime;
+
+            //print(Input.GetMousePosition(true) + " | " + Input.GetMousePosition(false) + " | " + player.position);
+            //if (box.gameObject.TryGetComponent(out Rigidbody2D rb)) rb.gravScale = 0;
+
+            if (Input.ClickedMouse(MouseButtons.Left))
+            {
+                var newGround = new GameObject("Floor", trnfrm: new Transform
+                    (pos: ((game.window.Size.Width / 2) - 200, (game.window.Size.Height / 2) + 50), scl: (300, 30), rot: 0)
+                    , components: new List<Component>()
+                {
+                new Shape2D(Color.Blue, size: (1, 1), offset: Vector2.Zero, Shape2D.ShapeType.Rectangle),
+                new Collider2D(Vector2.Zero,(1,1))
+                }, lyr: "Ground"
+                ).transform;
+
+                newGround.position = Input.GetMousePosition(true);
+            }
 
             /*//Vector2 camPos = (graphics.DpiX / 2, graphics.DpiY / 2);
             Vector2 camPos = Cam.position;

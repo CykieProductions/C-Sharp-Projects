@@ -89,7 +89,7 @@ namespace CyTools
         /// <param name="min">Inclusive minimum</param>
         /// <param name="max">Inclusive maximum</param>
         /// <returns></returns>
-        public static T Clamp<T>(this T value, T min, T max)
+        public static T Clamp<T>(this T value, T min, T max) where T: struct
         {
             dynamic v = value;
             if (v.GetType() != typeof(int) && v.GetType() != typeof(float))

@@ -26,9 +26,12 @@ namespace CysmicEngine
 
         //public bool isTouchingAnother;
         public bool isTrigger;
+        bool scaleToTransformOnStart = false;
 
-        public Collider2D(Vector2 os, Vector2 sz, bool isTrig = false, string lyr = "[default]")
+        public Collider2D(Vector2 os, Vector2 sz, bool isTrig = false, string lyr = "[default]", bool _scaleToTransform = false)
         {
+            scaleToTransformOnStart = _scaleToTransform;
+            
             offset = os;
             size = sz;
             isTrigger = isTrig;
@@ -38,6 +41,12 @@ namespace CysmicEngine
         protected override void Start()
         {
             base.Start();
+            if (scaleToTransformOnStart)
+            {
+                offset = offset * transform.scale / transform.scale;//I need to multiply, then divide by the same vaule for this to work for some reason
+                size = size / transform.scale;
+            }
+
             if (layer == "[default]")
                 layer = gameObject.layer;
             var gizColor = Color.ForestGreen;

@@ -19,141 +19,9 @@ namespace CysmicEngine
         }
     }
 
-
-    public enum AxisName
-    {
-        HORIZONTAL, VERTICAL
-    }
-    public static class Input
-    {
-        public static bool pressedOnThisFrame = true;
-        public static bool releasedOnThisFrame = true;
-        static HashSet<Keys> curPressedKeys = new HashSet<Keys>();
-        static HashSet<Keys> justPressedKeys = new HashSet<Keys>();
-        static HashSet<Keys> justReleasedKeys = new HashSet<Keys>();
-
-        static Dictionary<string, (Keys, Keys)> axes = new Dictionary<string, (Keys, Keys)>()
-        {
-            ["Horizontal"] = (Keys.A,Keys.D),//(-1, 1)
-            ["horizontal"] = (Keys.Left,Keys.Right),
-            ["Vertical"] = (Keys.S,Keys.W),
-            ["vertical"] = (Keys.Down,Keys.Up),
-        };
-
-        internal static void Win_KD_Event(object sender, KeyEventArgs e)
-        {
-            /*if(e.KeyCode == Keys.Space)
-                print("Jump Key Down Event!");*/
-            if(!curPressedKeys.Contains(e.KeyCode))//ensure it fires only once per press
-                justPressedKeys.Add(e.KeyCode);
-            curPressedKeys.Add(e.KeyCode);
-            pressedOnThisFrame = false;
-            //releasedOnThisFrame = false;
-        }
-        internal static void Win_KU_Event(object sender, KeyEventArgs e)
-        {
-            /*if (e.KeyCode == Keys.Space)
-                print("Jump Key Up Event!");*/
-
-            curPressedKeys.Remove(e.KeyCode);
-            justReleasedKeys.Add(e.KeyCode);
-            //pressedOnThisFrame = false;
-            releasedOnThisFrame = false;
-        }
-        /// <summary>Clear the list of one time presses at the end of every frame</summary>
-        internal static void ClearPressedKeys()
-        {
-            /*if (justPressedKeys.Contains(Keys.Space))
-                print("CLEAR PRESSED");*/
-
-            justPressedKeys.Clear();
-            //justReleasedKeys.Clear();
-        }
-        /// <summary>Clear the list of one time presses at the end of every frame</summary>
-        internal static void ClearReleasedKeys()
-        {
-            /*if (justReleasedKeys.Contains(Keys.Space))
-                print("CLEAR RELEASED");*/
-
-            //justPressedKeys.Clear();
-            justReleasedKeys.Clear();
-        }
-
-        public static bool PressedKey(Keys key)
-        {
-            /*if (key == Keys.Space && justPressedKeys.Contains(key))
-                print("Pressed the Jump Key!");*/
-            pressedOnThisFrame = true;
-            return justPressedKeys.Contains(key);
-        }
-        /// <summary>Is this key being held down?</summary>
-        /// <param name="includeFirstFrame">If false, this won't return true on the first frame of the press</param>
-        public static bool HoldingKey(Keys key, bool includeFirstFrame = true)
-        {
-            if(includeFirstFrame)
-                return curPressedKeys.Contains(key);
-            else
-                return !justPressedKeys.Contains(key) && curPressedKeys.Contains(key);
-        }
-        public static bool ReleasedKey(Keys key)//Note: it's possible to trigger this without triggering KeyDown first
-        {
-            /*if (key == Keys.Space && justReleasedKeys.Contains(key))
-                print("Released the Jump Key!");*/
-            releasedOnThisFrame = true;
-            return justReleasedKeys.Contains(key);
-        }
-
-        public static int GetAxis(AxisName name)
-        {
-            List<string> altNames = new List<string>();
-            for (int i = 0; i < axes.Keys.Count; i++)
-            {
-                if (name.ToString().ToUpper() == axes.Keys.ElementAt(i).ToUpper())
-                {
-                    altNames.Add(axes.Keys.ElementAt(i));
-                }
-            }
-            if (altNames.Count == 0)//name didn't match with any alternate capitalizing
-                throw new Exception("The provided Axis name wasn't valid");
-
-            for (int i = 0; i < altNames.Count; i++)
-            {
-                if (!axes.TryGetValue(altNames[i], out (Keys, Keys) axis))
-                    continue;
-
-                if (curPressedKeys.Contains(axis.Item1))
-                    return -1;
-                else if (curPressedKeys.Contains(axis.Item2))
-                    return 1;
-            }
-            return 0;//name was valid, but nothing was pressed
-        }
-    }
-
-    public static class Cam
-    {
-        public static Vector2 position = Vector2.Zero;
-        static Vector2 _camCenter = Vector2.Zero;
-        static public Vector2 camCenter { get { return _camCenter; } }
-
-        public static float speed = 120;
-        static RectangleF _VisibleClipBounds = new RectangleF();
-        public static RectangleF VisibleClipBounds { get { return _VisibleClipBounds; } }
-
-        internal static void SetCenter(Canvas window)
-        {
-            //_camCenter = (position.x + graphics.DpiX / 2, position.y + graphics.DpiY / 2);
-            _camCenter = (position.x + window.Width / 2, position.y + window.Height / 2);
-        }
-        internal static void GetVisibleClipBounds(Graphics graphics)
-        {
-            _VisibleClipBounds = graphics.ClipBounds;
-        }
-    }
-
     public class CE_Common : Basic
     {
-        public float Lerp(float start, float end, float percentage)
+        public static float Lerp(float start, float end, float percentage)
         {
             return start + percentage * (end - start);
         }
@@ -176,9 +44,10 @@ namespace CysmicEngine
 
     public abstract class CysmicGame : Basic
     {
-        public static bool displayGizmos = true;
+        public static bool displayGizmos = false;
 
-        Vector2 windowSize = new Vector2(512, 512);
+        Vector2 _defaultResolution = new Vector2(512, 512);
+        public Vector2 defaultResolution { get => _defaultResolution; protected set => _defaultResolution = value; }
         string title = "New Game";
         public Canvas window = null;
         Thread GameLoopThread;
@@ -199,6 +68,16 @@ namespace CysmicEngine
             window.Paint += Render;
             window.KeyDown += Input.Win_KD_Event;
             window.KeyUp += Input.Win_KU_Event;
+
+            window.MouseWheel += Input.Window_MouseWheel;
+            window.MouseMove += Input.Window_MouseMove;
+            window.MouseClick += Input.Window_MouseClick;
+            window.MouseDoubleClick += Input.Window_MouseDoubleClick;
+            window.MouseUp += Input.Window_MouseUp;
+
+            window.MouseEnter += Window_MouseEnter;
+            window.MouseLeave += Window_MouseLeave;
+
             window.FormClosing += Window_FormClosing;
             window.FormClosed += Window_FormClosed;
 
@@ -208,6 +87,16 @@ namespace CysmicEngine
 
             game = this;
             Application.Run(window);
+        }
+
+        private void Window_MouseLeave(object sender, EventArgs e)
+        {
+            Cursor.Show();
+        }
+
+        private void Window_MouseEnter(object sender, EventArgs e)
+        {
+            Cursor.Hide();
         }
 
         private void Window_FormClosing(object sender, FormClosingEventArgs e)
@@ -228,13 +117,13 @@ namespace CysmicEngine
 
         public CysmicGame(Vector2 winSize, string t, InterpolationMode im = InterpolationMode.NearestNeighbor)
         {
-            windowSize = winSize;
+            defaultResolution = winSize;
             title = t;
             drawMode = im;
 
             window = new Canvas();
             window.Text = title;
-            window.Size = new Size((int)windowSize.x, (int)windowSize.y);
+            window.Size = new Size((int)defaultResolution.x, (int)defaultResolution.y);
             //isFullySetUp = false;
         }
 
@@ -309,10 +198,15 @@ namespace CysmicEngine
             graphics.Clear(Color.Beige);
             /*if (!isFullySetUp)
                 return;*/
+            if (Cam.zoom <= 0.1f)//Max zoom out value
+                Cam.zoom = 0.1f;
 
-            graphics.TranslateTransform(Cam.position.x, Cam.position.y);
-            //_camCenter = (graphics.DpiX / 2, graphics.DpiY / 2);
-            Cam.SetCenter(window);
+            //print(window.Width / 2 + " | " + Cam.camCenter);
+            //print(graphics.Transform.OffsetX + " | " + Cam.position.x);\
+            graphics.TranslateTransform(Cam.position.x /* (defaultResolution.x / window.Width)*/, Cam.position.y);
+            graphics.ScaleTransform(Cam.zoom * (window.Width / defaultResolution.x), Cam.zoom * (window.Height / defaultResolution.y));
+            Cam.p_SetCenter(window);
+            Input.p_SetMousePostionFromWindow(window);
 
             graphics.InterpolationMode = drawMode;
             graphics.SmoothingMode = SmoothingMode.HighSpeed;
@@ -408,8 +302,18 @@ namespace CysmicEngine
             if (Input.releasedOnThisFrame)
                    Input.ClearReleasedKeys();
 
+            if (Input.clickedMouseOnThisFrame)
+                   Input.ClearMouseClicks();
+            if (Input.releasedMouseOnThisFrame)
+                   Input.ClearMouseReleases();
+            if(Input.scrolledMouseOnThisFrame)
+                Input.ResetMouseScroll();
+
             Input.pressedOnThisFrame = true;
             Input.releasedOnThisFrame = true;
+            Input.clickedMouseOnThisFrame = true;
+            Input.releasedMouseOnThisFrame = true;
+            Input.scrolledMouseOnThisFrame = true;
         }
 
         public Action OnFixedUpdate;
