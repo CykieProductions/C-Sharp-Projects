@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Drawing2D;
+using System.Linq;
 
 namespace CysmicEngine
 {
@@ -36,20 +32,20 @@ namespace CysmicEngine
         }
         public ShapeType shape = ShapeType.Rectangle;
 
-        void _MasterConstructor(Color clr, Vector2 _size, Vector2 _offset, ShapeType shapeType = ShapeType.Rectangle, bool fill = true, int srtOdr = 0)
+        void _MasterConstructor(Color clr, Vector2? _size, Vector2? _offset, ShapeType shapeType = ShapeType.Rectangle, bool fill = true, int srtOdr = 0)
         {
             sortOrder = srtOdr;
-            size = _size;
+            size = (Vector2)_size;
             color = clr;
             shape = shapeType;
             isFilled = fill;
-            offset = _offset;
+            offset = (Vector2)_offset;
         }
-        public Shape2D(Color clr, ShapeType shapeType = ShapeType.Rectangle, bool fill = true, int srtOdr = 0)
+        /*public Shape2D(Color clr, ShapeType shapeType = ShapeType.Rectangle, bool fill = true, int srtOdr = 0)
         {
             _MasterConstructor(clr, (1, 1), Vector2.Zero, shapeType, fill, srtOdr);
-        }
-        public Shape2D(Color clr, Vector2 size, Vector2 offset, ShapeType shapeType = ShapeType.Rectangle, bool fill = true, int srtOdr = 0)
+        }*/
+        public Shape2D(Color clr, Vector2? size = null, Vector2? offset = null, ShapeType shapeType = ShapeType.Rectangle, bool fill = true, int srtOdr = 0)
         {
             _MasterConstructor(clr, size, offset, shapeType, fill, srtOdr);
         }
@@ -80,7 +76,7 @@ namespace CysmicEngine
             {
                 case ShapeType.Rectangle:
                     //graphics.FillRectangle(Brushes.Blue, pos.x - (size.x / 2), pos.y + (size.y / 2), size.x, size.y);
-                    if(isFilled)
+                    if (isFilled)
                         graphics.FillRectangle(brush, pos.x, pos.y, scale.x, scale.y);
                     else
                         graphics.DrawRectangle(new Pen(brush, 2.5f), pos.x, pos.y, scale.x, scale.y);
@@ -134,7 +130,7 @@ namespace CysmicEngine
 
         public override void Draw(Graphics graphics)
         {
-            if(size == Vector2.Zero)
+            if (size == Vector2.Zero)
             {
                 size = (sprite.Width, sprite.Height);
             }
@@ -198,7 +194,7 @@ namespace CysmicEngine
         }
         public static implicit operator Sprite(Image bitmap)
         {
-            
+
             return new Sprite(bitmap);
         }
     }
@@ -230,11 +226,11 @@ namespace CysmicEngine
             isSpriteSheet = true;
         }
 
-        public SpriteSheet(Image img, Vector2Int sliceSize, string[] sliceNames = null) : base (img)
+        public SpriteSheet(Image img, Vector2Int sliceSize, string[] sliceNames = null) : base(img)
         {
             _MasterConstructor(img, sliceSize, sliceNames);
         }
-        public SpriteSheet(string path, Vector2Int sliceSize, string[] sliceNames = null) : base (path)
+        public SpriteSheet(string path, Vector2Int sliceSize, string[] sliceNames = null) : base(path)
         {
             _MasterConstructor(new Bitmap(path), sliceSize, sliceNames);
         }
@@ -250,7 +246,7 @@ namespace CysmicEngine
                     break;
 
                 curColumn++;
-                if(curColumn > columns)
+                if (curColumn > columns)
                 {
                     curColumn = 0;
                     rows++;

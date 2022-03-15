@@ -1,9 +1,8 @@
-﻿using System;
+﻿using CysmicEngine.Demo_Game;
+using CysmicEngine.Editor;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using CysmicEngine.Demo_Game;
 
 namespace CysmicEngine
 {
@@ -11,8 +10,10 @@ namespace CysmicEngine
     {
         static void Main(string[] args)
         {
+            //CysmicEditor cysmicEditor = new CysmicEditor();
             DemoGame demoGame = new DemoGame();
             demoGame.Play();
+            //Inspector inspector = new Inspector();
         }
     }
 }
@@ -23,7 +24,7 @@ namespace CyTools
     {
         /*public const string _UNDERLINE = "\x1B[4m";
         public const string _RESET = "\x1B[0m";*/
-        public static Random r = new Random();
+        public static Random random = new Random();
 
         public static T print<T>(T text, bool sameLine = false)//, int textColor = -1, int backgroundColor = -1)
         {
@@ -53,12 +54,12 @@ namespace CyTools
         /// <returns></returns>
         public static int RandomInt(int min, int max)
         {
-            Random r2 = new Random(r.Next(-999, 999));
-            Random r3 = new Random(r.Next(-r2.Next(), 999));
+            Random r2 = new Random(random.Next(-999, 999));
+            Random r3 = new Random(random.Next(-r2.Next(), 999));
 
             int randInt = r3.Next(0, 3);
             if (randInt == 0)
-                return r.Next(min, max + 1);
+                return random.Next(min, max + 1);
             else if (randInt == 1)
                 return r2.Next(min, max + 1);
             else
@@ -89,7 +90,7 @@ namespace CyTools
         /// <param name="min">Inclusive minimum</param>
         /// <param name="max">Inclusive maximum</param>
         /// <returns></returns>
-        public static T Clamp<T>(this T value, T min, T max) where T: struct
+        public static T Clamp<T>(this T value, T min, T max) where T : struct
         {
             dynamic v = value;
             if (v.GetType() != typeof(int) && v.GetType() != typeof(float))

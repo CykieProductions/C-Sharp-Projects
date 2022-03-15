@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CysmicEngine
 {
@@ -31,7 +28,7 @@ namespace CysmicEngine
         public Collider2D(Vector2 os, Vector2 sz, bool isTrig = false, string lyr = "[default]", bool _scaleToTransform = false)
         {
             scaleToTransformOnStart = _scaleToTransform;
-            
+
             offset = os;
             size = sz;
             isTrigger = isTrig;

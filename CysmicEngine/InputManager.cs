@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace CysmicEngine
@@ -31,7 +29,9 @@ namespace CysmicEngine
         static HashSet<MouseButtons> mouseReleaseSet = new HashSet<MouseButtons>();
 
         private static bool _showCursor = true;
-        public static bool showCursor { get =>_showCursor;
+        public static bool showCursor
+        {
+            get => _showCursor;
             set
             {
                 if (value == _showCursor)
@@ -101,7 +101,7 @@ namespace CysmicEngine
 
         public static Vector2 GetMousePosition(bool UseWorldSpace)
         {
-            if(UseWorldSpace)
+            if (UseWorldSpace)
                 return mouseWorldPos;
             else
                 return mouseScreenPos;

@@ -1,13 +1,11 @@
-﻿using System;
+﻿using CyTools;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Windows.Forms;
 using System.Drawing;
 using System.Drawing.Drawing2D;
-using CyTools;
-using static CyTools.Basic;
+using System.Linq;
+using System.Threading;
+using System.Windows.Forms;
 
 namespace CysmicEngine
 {
@@ -152,7 +150,7 @@ namespace CysmicEngine
                         {
                             float frameOffset = (float)TimeSpan.FromSeconds(desiredFrameTime - Time.deltaTime).TotalSeconds;
                             //print($"deltaTime ({_deltaTime}) + frameOffset ({frameOffset})" +
-                              //  $" = {_deltaTime + frameOffset}.");
+                            //  $" = {_deltaTime + frameOffset}.");
                             Thread.Sleep(TimeSpan.FromSeconds(frameOffset));
                         }
                         else
@@ -162,13 +160,13 @@ namespace CysmicEngine
 
                         var asyncDraw = window.BeginInvoke((MethodInvoker)delegate { window.Refresh(); });//Draw Frame
 
-                        while (!asyncDraw.IsCompleted);
+                        while (!asyncDraw.IsCompleted) ;
 
                         LateUpdate();
 
                         //Calculate deltaTime
                         var newFrameTime = DateTime.UtcNow;
-                        Time.private_SetDT( (float)newFrameTime.Subtract(Time.prevFrameTime).TotalSeconds) ;
+                        Time.private_SetDT((float)newFrameTime.Subtract(Time.prevFrameTime).TotalSeconds);
                         Time.prevFrameTime = DateTime.MinValue;
                     }
                     else
@@ -181,7 +179,7 @@ namespace CysmicEngine
                     print("Game is loading...");
                 }
 
-                //Input.ClearReleasedKeys();//moved to  late update
+                //Input.ClearReleasedKeys();//moved to late update
                 if (PhysicsThread == null)
                 {
                     PhysicsThread = new Thread(FixedLoop);
@@ -212,10 +210,6 @@ namespace CysmicEngine
             graphics.SmoothingMode = SmoothingMode.HighSpeed;
 
             allRenderers = allRenderers.OrderBy(x => x.sortOrder).ToHashSet();
-            /*if(false)
-            {
-                allRenderers.RemoveWhere(x => x.isGizmo == true);
-            }*/
 
             try
             {
@@ -300,13 +294,13 @@ namespace CysmicEngine
             if (Input.pressedOnThisFrame)
                 Input.ClearPressedKeys();
             if (Input.releasedOnThisFrame)
-                   Input.ClearReleasedKeys();
+                Input.ClearReleasedKeys();
 
             if (Input.clickedMouseOnThisFrame)
-                   Input.ClearMouseClicks();
+                Input.ClearMouseClicks();
             if (Input.releasedMouseOnThisFrame)
-                   Input.ClearMouseReleases();
-            if(Input.scrolledMouseOnThisFrame)
+                Input.ClearMouseReleases();
+            if (Input.scrolledMouseOnThisFrame)
                 Input.ResetMouseScroll();
 
             Input.pressedOnThisFrame = true;

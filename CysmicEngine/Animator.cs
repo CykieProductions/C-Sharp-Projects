@@ -1,12 +1,5 @@
-﻿using System;
+﻿using CyTools;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Drawing;
-using System.Collections;
-using System.Threading.Tasks;
-using CyTools;
 
 namespace CysmicEngine
 {
@@ -56,16 +49,16 @@ namespace CysmicEngine
                 {
                     frameTimer = 0;
                     curFrame++;
-                    if(curFrame >= curAnimation.frames.Length)
+                    if (curFrame >= curAnimation.frames.Length)
                     {
                         OnCompleteLoop();
                     }
                 }
             }
             //no else
-            if(curAnimation == null || curAnimation.isFinished)
+            if (curAnimation == null || curAnimation.isFinished)
             {
-                if (animationSequence.Count > 0) 
+                if (animationSequence.Count > 0)
                     curAnimation = animationSequence.Dequeue();
             }
         }
@@ -97,7 +90,7 @@ namespace CysmicEngine
             curFrame = 0;
             if (curAnimation.isLooping)
             {
-                if(curAnimation.timesPlayed.Clamp(0, int.MaxValue - 1) >= curAnimation.unlockAfterPlays)
+                if (curAnimation.timesPlayed.Clamp(0, int.MaxValue - 1) >= curAnimation.unlockAfterPlays)
                 {
                     curAnimation.canBeInterupted = true;
                 }
@@ -106,7 +99,7 @@ namespace CysmicEngine
             {
                 curAnimation.isFinished = true;
                 //if(!curAnimation.holdFrameAfter)
-                    //back to default animation
+                //back to default animation
             }
         }
 

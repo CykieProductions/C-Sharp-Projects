@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using CyTools;
-
-namespace CysmicEngine
+﻿namespace CysmicEngine
 {
     public static class Cam
     {
@@ -18,7 +10,9 @@ namespace CysmicEngine
         public static Vector2 originalPos { get => _originalPos; private set => _originalPos = value; }
 
         private static Vector2 _position = Vector2.Zero;
-        public static Vector2 position { get => _position; set
+        public static Vector2 position
+        {
+            get => _position; set
             {
                 //lastFramePos = _position;
                 if (!hasAlteredPosition)

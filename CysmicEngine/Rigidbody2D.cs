@@ -1,10 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using CyTools;
 
 namespace CysmicEngine
 {
@@ -50,13 +46,13 @@ namespace CysmicEngine
             //Collision actions could be assigned to whenever the rigidbody is added, but I'd have to make them public
             for (int i = 0; i < gameObject.allComponents.Count; i++)
             {
-                TriggerEnterAction +=    gameObject.allComponents[i].OnTriggerEnter;
-                TriggerStayAction +=     gameObject.allComponents[i].OnTriggerStay;
-                TriggerExitAction +=     gameObject.allComponents[i].OnTriggerExit;
+                TriggerEnterAction += gameObject.allComponents[i].OnTriggerEnter;
+                TriggerStayAction += gameObject.allComponents[i].OnTriggerStay;
+                TriggerExitAction += gameObject.allComponents[i].OnTriggerExit;
 
-                CollisionEnterAction +=  gameObject.allComponents[i].OnCollisionEnter;
-                CollisionStayAction +=   gameObject.allComponents[i].OnCollisionStay;
-                CollisionExitAction +=   gameObject.allComponents[i].OnCollisionExit;
+                CollisionEnterAction += gameObject.allComponents[i].OnCollisionEnter;
+                CollisionStayAction += gameObject.allComponents[i].OnCollisionStay;
+                CollisionExitAction += gameObject.allComponents[i].OnCollisionExit;
             }
         }
 
@@ -93,7 +89,7 @@ namespace CysmicEngine
             //Perform any velocity calculations before checking for walls
             _velocity.y -= gravScale * _constantG * (float)Math.Pow(Time.fixedDeltaTime, 2);
 
-            if(collidersTouchedLastFrame.ToList().Exists(x => !x.isTrigger))
+            if (collidersTouchedLastFrame.ToList().Exists(x => !x.isTrigger))
                 _velocity.x = Lerp(_velocity.x, 0, frictionDamp);
             if (_velocity.x > -0.01f && _velocity.x < 0.01f)
                 _velocity.x = 0;
@@ -111,7 +107,7 @@ namespace CysmicEngine
 
             if (newPos.y == float.Epsilon - myColliders[0].offset.y)//won't hit anything vertically
             {
-                if(_velocity.y > 0.1f || _velocity.y < -0.1f)
+                if (_velocity.y > 0.1f || _velocity.y < -0.1f)
                     transform.Translate(0, _velocity.y);
             }
             else
@@ -127,7 +123,7 @@ namespace CysmicEngine
             else
             {
                 //if (Math.Abs(preCheckVel.x) >= Math.Abs(velocity.x))
-                    //velocity.x = 0;
+                //velocity.x = 0;
                 transform.SetPosition((newPos.x, transform.position.y));
             }
         }
@@ -173,7 +169,7 @@ namespace CysmicEngine
             {
                 if (allColliders[i].gameObject == gameObject)//Don't collide with self
                     continue;
-                
+
 
                 Vector2 otherScale = ((allColliders[i].transform.scale.x * allColliders[i].size.x), (allColliders[i].transform.scale.y * allColliders[i].size.y));
 
@@ -243,10 +239,11 @@ namespace CysmicEngine
                         CalculateEdgesFromNewPos((myLeftEdge, myTopEdge));
 
                         //Failsafe for if you still end up in a wall
-                        /*while*/if (myRightEdge > otherLeftEdge &&//right edge is farther right than left edge of other
-                        myLeftEdge < otherRightEdge &&//left edge is farther left than right edge of other
-                        myBottomEdge > otherTopEdge &&//bottom edge is lower than top edge of other
-                        myTopEdge < otherBottomEdge)//top edge is higher than bottom edge of other
+                        /*while*/
+                        if (myRightEdge > otherLeftEdge &&//right edge is farther right than left edge of other
+               myLeftEdge < otherRightEdge &&//left edge is farther left than right edge of other
+               myBottomEdge > otherTopEdge &&//bottom edge is lower than top edge of other
+               myTopEdge < otherBottomEdge)//top edge is higher than bottom edge of other
                         {
                             hitNothing = false;
                             /*if (justStartedTouching)
@@ -375,7 +372,7 @@ namespace CysmicEngine
                 xResult = myLeftEdge;
             if (hitY)
                 yResult = myTopEdge;
-            
+
             return (xResult, yResult);
         }
 

@@ -1,10 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
 namespace CysmicEngine.Demo_Game
@@ -117,6 +113,7 @@ namespace CysmicEngine.Demo_Game
                 //new InputController(),
                 new Rigidbody2D(),
                 new Collider2D((0, 0), (1,1), isTrig: false),
+                new AudioSource()
                 //new Collider2D(Vector2.Zero, (10, 10)),
             }, lyr: "Ground"
             ).transform;
@@ -135,7 +132,7 @@ namespace CysmicEngine.Demo_Game
                 new Collider2D(Vector2.Zero,(1,1))
             }, lyr: "Ground"
             ).transform;
-            
+
             floor = new GameObject("Floor", trnfrm: new Transform
                 (pos: ((game.window.Size.Width / 2) - 60 - 200, (game.window.Size.Height / 2) + 130), scl: (420, 30), rot: 0)
                 , components: new List<Component>()
@@ -153,40 +150,11 @@ namespace CysmicEngine.Demo_Game
                 new Collider2D(Vector2.Zero,(1,1))
             }, lyr: "Ground"
             ).transform;
-
-            /*new GameObject("Cam Gizmo BR", components: new List<Component>()
-            {
-                new Shape2D(Color.Purple, sz: (10, 10), Shape2D.ShapeType.Circle)
-            }).transform.SetPosition(((instance.window.Size.Width / 2) - 50, (instance.window.Size.Height / 2) + 50));*/
-
-            /*camGizmo = new GameObject("Cam Gizmo BR", components: new List<Component>()
-            {
-                new Shape2D(Color.Blue, sz: (10, 10), Shape2D.ShapeType.Circle)
-            }
-            ).transform.SetPosition((Cam.VisibleClipBounds.Right, Cam.VisibleClipBounds.Bottom)).SetScale((25, 25));
-            camGizmo = new GameObject("Cam Gizmo TR", components: new List<Component>()
-            {
-                new Shape2D(Color.Blue, sz: (10, 10), Shape2D.ShapeType.Circle)
-            }
-            ).transform.SetPosition((Cam.VisibleClipBounds.Right, Cam.VisibleClipBounds.Top)).SetScale((25, 25));
-            camGizmo = new GameObject("Cam Gizmo BL", components: new List<Component>()
-            {
-                new Shape2D(Color.Blue, sz: (10, 10), Shape2D.ShapeType.Circle)
-            }
-            ).transform.SetPosition((Cam.VisibleClipBounds.Left, Cam.VisibleClipBounds.Bottom)).SetScale((25, 25));
-            camGizmo = new GameObject("Cam Gizmo TL", components: new List<Component>()
-            {
-                new Shape2D(Color.Blue, sz: (10, 10), Shape2D.ShapeType.Circle)
-            }
-            ).transform.SetPosition((Cam.VisibleClipBounds.Left, Cam.VisibleClipBounds.Top)).SetScale((25, 25));*/
         }
 
         public override void Update()
         {
             base.Update();
-            /*camGizmo.transform.position.x = Cam.position.x;
-            camGizmo.transform.position.y = Cam.position.y;*/
-            //player.scale.x += deltaTime;
 
             /*if (Input.PressedKey(Keys.Up))
                 print("Player pressed: " + Keys.Up);
@@ -196,6 +164,24 @@ namespace CysmicEngine.Demo_Game
                 print("Player released: " + Keys.Up);*/
 
             //print(Input.GetAxis(AxisName.HORIZONTAL));
+
+            /*if(Input.PressedKey(Keys.P))
+            {
+                if (box.gameObject.TryGetComponent(out AudioSource audioSource))
+                {
+                    audioSource.Play("Gloomstead");
+                    print("play");
+                }
+            }
+            if(Input.PressedKey(Keys.S))
+            {
+                if (box.gameObject.TryGetComponent(out AudioSource audioSource))
+                {
+                    audioSource.Stop();//("Gloomstead");
+                    print("stop");
+                }
+            }*/
+
         }
         float timer = 0;
         int myFrames = 0;
@@ -206,8 +192,10 @@ namespace CysmicEngine.Demo_Game
             CountFPS();
 
             Cam.Follow(player.position + (player.scale.x / 2, player.scale.y / 2));
-            cursorObj.position = Input.GetMousePosition(true);// + (box.scale.x / 2, box.scale.y);
             Cam.zoom += Input.GetMouseScroll() * 0.08f * Time.deltaTime;
+
+            cursorObj.position = Input.GetMousePosition(true);
+
 
             //print(Input.GetMousePosition(true) + " | " + Input.GetMousePosition(false) + " | " + player.position);
             //if (box.gameObject.TryGetComponent(out Rigidbody2D rb)) rb.gravScale = 0;
@@ -223,7 +211,19 @@ namespace CysmicEngine.Demo_Game
                 }, lyr: "Ground"
                 ).transform;
 
-                newGround.position = Input.GetMousePosition(true);
+                newGround.position = cursorObj.position;
+            }
+            else
+            {
+                var newGround = new GameObject("Floor", trnfrm: new Transform
+                    (pos: ((game.window.Size.Width / 2) - 200, (game.window.Size.Height / 2) + 50), scl: (300, 30), rot: 0)
+                    , components: new List<Component>()
+                {
+                new Shape2D(Color.FromArgb(100, Color.Blue), size: (1, 1), offset: Vector2.Zero, Shape2D.ShapeType.Rectangle),
+                }, lyr: "Ground"
+                ).transform;
+
+                newGround.position = cursorObj.position;
             }
 
             /*//Vector2 camPos = (graphics.DpiX / 2, graphics.DpiY / 2);
@@ -282,7 +282,7 @@ namespace CysmicEngine.Demo_Game
         {
             base.FixedUpdate();
             ////*print("Fixed Timer: " + fixedTimer);
-            if(fixedTimer * Time.fixedDeltaTime >= 1)
+            if (fixedTimer * Time.fixedDeltaTime >= 1)
             {
                 //print("Fixed Second");
                 fixedTimer = 0;

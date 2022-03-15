@@ -1,10 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using CyTools;
 
 namespace CysmicEngine.Demo_Game
 {
@@ -24,7 +19,7 @@ namespace CysmicEngine.Demo_Game
             base.Update();
             movement = (Input.GetAxis(AxisName.HORIZONTAL), Input.GetAxis(AxisName.VERTICAL));
 
-            if(pressedJump && jumpTimer < jumpBuffer)
+            if (pressedJump && jumpTimer < jumpBuffer)
             {
                 jumpTimer += Time.deltaTime;
             }
@@ -33,7 +28,7 @@ namespace CysmicEngine.Demo_Game
                 jumpTimer = 0;
                 pressedJump = false;
             }
-            if(Input.PressedKey(Keys.Space))
+            if (Input.PressedKey(Keys.Space))
             {
                 pressedJump = true;
                 jumpTimer = 0;
@@ -71,19 +66,19 @@ namespace CysmicEngine.Demo_Game
         {
             base.Update();
             float moddedSpeed = speed;
-            if (!Input.HoldingKey(Keys.ShiftKey))
+            if (!Input.HoldingKey(Keys.ShiftKey) || (isGrounded && Math.Abs(rb.velocity.x) <= speed / 2))
                 isSprinting = false;
-            else if ((Input.HoldingKey(Keys.ShiftKey) && isGrounded) || isSprinting)
+            else if ((Input.HoldingKey(Keys.ShiftKey) && isGrounded && Math.Abs(rb.velocity.x) > speed / 2) || isSprinting)
             {
                 moddedSpeed = speed * 1.8f;
                 isSprinting = true;
             }
 
             isGrounded = groundDetector.IsTouching("Ground");
-            
+
             rb.velocity = (Lerp(rb.velocity.x, ic.movement.x * moddedSpeed, 0.25f), rb.velocity.y);
 
-            if(ic.movement.x > 0)
+            if (ic.movement.x > 0)
             {
                 gfx.flipX = false;
             }
@@ -92,16 +87,16 @@ namespace CysmicEngine.Demo_Game
                 gfx.flipX = true;
             }
 
-            if(isGrounded)
+            if (isGrounded)
             {
-                if(ic.movement.x != 0)
+                if (ic.movement.x != 0)
                     anim?.Play("Run", loop: true);
                 else
                     anim?.Play("Idle", loop: true);
             }
             else
             {
-                if(rb.velocity.y > 0)
+                if (rb.velocity.y > 0)
                     anim?.Play("Jump", loop: true);
                 else
                     anim?.Play("Fall", loop: true);

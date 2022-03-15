@@ -1,11 +1,7 @@
-﻿using System;
-using System.ComponentModel;
+﻿using CyTools;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using CyTools;
-using static CyTools.Basic;
 
 namespace CysmicEngine
 {
@@ -50,7 +46,7 @@ namespace CysmicEngine
 
         public bool wasDestroyed { get { return _wasDestroyed; } }
 
-        public T AddComponent<T>(T component) where T: Component
+        public T AddComponent<T>(T component) where T : Component
         {
             if (component.OnlyOnePerGO())
             {
@@ -65,13 +61,13 @@ namespace CysmicEngine
 
             allComponents.Add(component);
             int i = allComponents.IndexOf(component);
-            if(transform == null)
+            if (transform == null)
                 allComponents[i].transform = component as Transform;
             else
                 allComponents[i].transform = transform;
             allComponents[i].gameObject = this;
 
-            if(isInitializing)//wait to call Start
+            if (isInitializing)//wait to call Start
                 StartComponents += allComponents[i].OnStart;
             else
                 allComponents[i].OnStart();
@@ -126,8 +122,8 @@ namespace CysmicEngine
             layer = lyr;//replace with "find class by enum"
 
             //Initialize ID
-            _uniqueID = "~" + name + "~" + DateTime.UtcNow.ToString() + DateTime.UtcNow.Millisecond + Basic.r.Next() + "|" + extraID;
-            while (CysmicGame.allGameObjects.Exists(x =>x != null && x.uniqueID == uniqueID))
+            _uniqueID = "~" + name + "~" + DateTime.UtcNow.ToString() + DateTime.UtcNow.Millisecond + Basic.random.Next() + "|" + extraID;
+            while (CysmicGame.allGameObjects.Exists(x => x != null && x.uniqueID == uniqueID))
                 _uniqueID += "(C)";
 
             //Initialize Components
@@ -142,7 +138,7 @@ namespace CysmicEngine
             else//if doesn't have Transform, then add it
             {
                 var t = components.Find(x => x is Transform);
-                if(t == null)
+                if (t == null)
                     components.Insert(0, new Transform());
                 else
                 {
