@@ -15,6 +15,29 @@ namespace CysmicEngine
             demoGame.Play();
             //Inspector inspector = new Inspector();
         }
+
+        /*public static void FinalDestroy(GameObject gameObject)
+        {
+            for (int i = 0; i < gameObject.allComponents.Count; i++)
+            {
+                CysmicGame.game.OnUpdate -= gameObject.allComponents[i].OnUpdate;
+                CysmicGame.game.OnLateUpdate -= gameObject.allComponents[i].OnLateUpdate;
+                CysmicGame.game.OnFixedUpdate -= gameObject.allComponents[i].OnFixedUpdate;
+                gameObject.allComponents[i].gameObject._wasDestroyed = true;
+                gameObject.allComponents[i] = null;
+            }
+
+            if (CysmicGame.allGameObjects.IndexOf(gameObject) >= 0)
+                CysmicGame.allGameObjects[CysmicGame.allGameObjects.IndexOf(gameObject)] = null;
+            gameObject = null;
+            CysmicGame.ClearNullGameObjects();
+        }
+        public static void ClearNullGameObjects()
+        {
+            CysmicGame.allGameObjects.RemoveAll(x => x == null || x.wasDestroyed == true);
+            CysmicGame.allColliders.RemoveWhere(x => x.gameObject.wasDestroyed == true);
+            CysmicGame.allRenderers.RemoveWhere(x => x.gameObject.wasDestroyed == true);
+        }*/
     }
 }
 

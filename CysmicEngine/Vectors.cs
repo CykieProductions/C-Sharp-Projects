@@ -13,6 +13,11 @@ namespace CysmicEngine
             y = yv;
         }
 
+        public static implicit operator string(Vector2Int vector2)
+        {
+            return "(" + vector2.x + "," + vector2.y + ")";
+        }
+
         public static implicit operator Vector2Int(Vector2 vector2)
         {
             Vector2Int result = new Vector2Int();
@@ -36,6 +41,15 @@ namespace CysmicEngine
             result.y = point.Y;
 
             return result;
+        }
+
+        public static Vector2Int operator +(Vector2Int v1, Vector2Int v2)
+        {
+            return new Vector2(v1.x + v2.x, v1.y + v2.y);
+        }
+        public static Vector2Int operator -(Vector2Int v1, Vector2Int v2)
+        {
+            return new Vector2(v1.x - v2.x, v1.y - v2.y);
         }
     }
     public struct Vector2
@@ -74,12 +88,22 @@ namespace CysmicEngine
         }
         public static implicit operator Vector2(Vector2Int vector2int)
         {
-            Vector2Int result = new Vector2Int();
+            Vector2 result = new Vector2();
             result.x = vector2int.x;
             result.y = vector2int.y;
 
             return result;
         }
+        /*public static explicit operator Vector2(Vector2Int vector2int)
+        {
+            Vector2Int result = new Vector2Int();
+            result.x = vector2int.x;
+            result.y = vector2int.y;
+
+            return result;
+        }*/
+
+
         public static explicit operator Vector2(Point point)
         {
             Vector2 result = new Vector2();
@@ -120,6 +144,28 @@ namespace CysmicEngine
         {
             return new Vector2(v1.x * m, v1.y * m);
         }
+        public static Vector2 operator /(Vector2 v1, float d)
+        {
+            return new Vector2(v1.x / d, v1.y / d);
+        }
+        /*public static bool operator ==(Vector2 v1, Vector2 v2)//does a string comparision automatically
+        {
+            bool result = false;
+
+            if (v1.x == v2.x && v1.y == v2.y)
+                result = true;
+
+            return result;
+        }
+        public static bool operator !=(Vector2 v1, Vector2 v2)
+        {
+            bool result = true;
+
+            if (v1.x == v2.x && v1.y == v2.y)
+                result = false;
+
+            return result;
+        }*/
 
         public override string ToString()
         {

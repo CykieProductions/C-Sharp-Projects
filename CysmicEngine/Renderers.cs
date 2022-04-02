@@ -34,12 +34,17 @@ namespace CysmicEngine
 
         void _MasterConstructor(Color clr, Vector2? _size, Vector2? _offset, ShapeType shapeType = ShapeType.Rectangle, bool fill = true, int srtOdr = 0)
         {
+            if (_size == null)
+                _size = (1, 1);
+            if (_offset == null)
+                _offset = (0, 0);
+
             sortOrder = srtOdr;
-            size = (Vector2)_size;
+            size = _size.Value;
             color = clr;
             shape = shapeType;
             isFilled = fill;
-            offset = (Vector2)_offset;
+            offset = _offset.Value;
         }
         /*public Shape2D(Color clr, ShapeType shapeType = ShapeType.Rectangle, bool fill = true, int srtOdr = 0)
         {

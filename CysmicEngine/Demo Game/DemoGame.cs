@@ -117,7 +117,6 @@ namespace CysmicEngine.Demo_Game
                 //new Collider2D(Vector2.Zero, (10, 10)),
             }, lyr: "Ground"
             ).transform;
-            box.transform.isStatic = false;
             box.isStatic = false;
             if (box.gameObject.TryGetComponent(out someRB))
             {

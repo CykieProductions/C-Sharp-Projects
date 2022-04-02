@@ -5,6 +5,9 @@ using System.Linq;
 
 namespace CysmicEngine
 {
+    /// <summary>
+    /// An entity meant for debugging. Toggle the display through the static bool displayGizmos.
+    /// </summary>
     public class GizmoObj
     {
         private Transform _transform;
@@ -21,6 +24,9 @@ namespace CysmicEngine
             CysmicGame.allGizmos.Add(this);
         }
     }
+    /// <summary>
+    /// A GameObject is the base of any entity in the game world. They can contain componets that affect rendering and various other behaviours.
+    /// </summary>
     public class GameObject
     {
         /*void OnTriggerEnter    (Collider2D other) { }
@@ -76,6 +82,15 @@ namespace CysmicEngine
             CysmicGame.game.OnLateUpdate += allComponents[i].OnLateUpdate;//() => { allComponents[i].LateUpdate(); CysmicGame.ClearNullGameObjects(); };
             CysmicGame.game.OnFixedUpdate += allComponents[i].OnFixedUpdate;
 
+            if (component is Renderer)
+            {
+                CysmicGame.allRenderers.Add(component as Renderer);
+            }
+            else if (allComponents[i] is Collider2D)
+            {
+                CysmicGame.allColliders.Add(component as Collider2D);
+            }
+
             return component;
         }
 
@@ -104,6 +119,10 @@ namespace CysmicEngine
             }
         }
 
+        /// <summary>
+        /// Duplicates an existing GameObject
+        /// </summary>
+        /// <param name="gameObject">The GameObject to be duplicated</param>
         public GameObject(GameObject gameObject)
         {
             name += " (Clone)";
@@ -111,6 +130,10 @@ namespace CysmicEngine
             allComponents = gameObject.allComponents;
             transform = gameObject.transform;
         }
+
+        /// <summary>
+        /// Spawns a new GameObject. A default transform component is added if not transform is specified.
+        /// </summary>
         public GameObject(string n = "[defaultName]", Transform trnfrm = null, List<Component> components = null, string lyr = "", string extraID = "")
         {
             allComponents = new List<Component>();

@@ -40,6 +40,9 @@ namespace CysmicEngine
         }
     }
 
+    /// <summary>
+    /// The basis for your game. Create a child class and call Play() at the start of the program.
+    /// </summary>
     public abstract class CysmicGame : Basic
     {
         public static bool displayGizmos = false;
@@ -59,6 +62,9 @@ namespace CysmicEngine
 
         public static CysmicGame game;
 
+        /// <summary>
+        /// Starts the game
+        /// </summary>
         public void Play()
         {
             Time.prevFrameTime = DateTime.MinValue;
@@ -80,10 +86,12 @@ namespace CysmicEngine
             window.FormClosed += Window_FormClosed;
 
             GameLoopThread = new Thread(GameLoop);
+            game = this;
+
             GameLoopThread.Start();
             //Start fixed loop after first frame of game loop
 
-            game = this;
+            
             Application.Run(window);
         }
 
@@ -108,16 +116,16 @@ namespace CysmicEngine
         }
         private void Window_FormClosed(object sender, FormClosedEventArgs e)
         {
-            GameLoopThread.Abort();
-            PhysicsThread.Abort();
+            GameLoopThread?.Abort();
+            PhysicsThread?.Abort();
             Application.Exit();
         }
 
-        public CysmicGame(Vector2 winSize, string t, InterpolationMode im = InterpolationMode.NearestNeighbor)
+        public CysmicGame(Vector2 winSize, string _title, InterpolationMode interpolationMode = InterpolationMode.NearestNeighbor)
         {
             defaultResolution = winSize;
-            title = t;
-            drawMode = im;
+            title = _title;
+            drawMode = interpolationMode;
 
             window = new Canvas();
             window.Text = title;
@@ -193,7 +201,7 @@ namespace CysmicEngine
         private void Render(object sender, PaintEventArgs e)
         {
             Graphics graphics = e.Graphics;
-            graphics.Clear(Color.Beige);
+            //graphics.Clear(Color.Beige);
             /*if (!isFullySetUp)
                 return;*/
             if (Cam.zoom <= 0.1f)//Max zoom out value
@@ -213,6 +221,7 @@ namespace CysmicEngine
 
             try
             {
+                graphics.Clear(Color.Beige);//moved
                 foreach (var renderer in allRenderers)
                 {
                     renderer.Draw(graphics);
@@ -220,6 +229,7 @@ namespace CysmicEngine
 
                 if (displayGizmos)
                 {
+                    allGizmos.RemoveWhere(gizmo => gizmo.transform.gameObject.wasDestroyed);
                     foreach (var gizmo in allGizmos)
                     {
                         gizmo.renderer.Draw(graphics);
@@ -228,7 +238,7 @@ namespace CysmicEngine
             }
             catch
             {
-                print("FRAME COULDN'T BE DRAWN");
+                //print("FRAME COULDN'T BE DRAWN");
                 //graphics.Clear(Color.Beige);
             }
         }
@@ -250,7 +260,8 @@ namespace CysmicEngine
                     gameObject.allComponents[i] = null;
                 }
 
-                allGameObjects[allGameObjects.IndexOf(gameObject)] = null;
+                if(allGameObjects.IndexOf(gameObject) >= 0)
+                    allGameObjects[allGameObjects.IndexOf(gameObject)] = null;
                 gameObject = null;
                 ClearNullGameObjects();
             }
@@ -268,8 +279,8 @@ namespace CysmicEngine
         public static void ClearNullGameObjects()
         {
             allGameObjects.RemoveAll(x => x == null || x.wasDestroyed == true);
-            allColliders.RemoveWhere(x => x.gameObject.wasDestroyed == true);
-            allRenderers.RemoveWhere(x => x.gameObject.wasDestroyed == true);
+            allColliders.RemoveWhere(x => x == null || x.gameObject.wasDestroyed == true);
+            allRenderers.RemoveWhere(x => x == null || x.gameObject.wasDestroyed == true);
         }
 
         public Action OnUpdate;
@@ -317,7 +328,7 @@ namespace CysmicEngine
         public virtual void FixedUpdate()
         {
             ClearNullGameObjects();
-            OnFixedUpdate.Invoke();
+            OnFixedUpdate?.Invoke();
         }
     }
 }

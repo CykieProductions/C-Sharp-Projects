@@ -19,7 +19,11 @@ namespace CysmicEngine
         internal void OnLateUpdate(/*System.Drawing.Graphics graphics*/) => LateUpdate();
         protected virtual void LateUpdate() { }
 
-        internal void OnFixedUpdate() => FixedUpdate();
+        internal void OnFixedUpdate()
+        {
+            if(!gameObject.wasDestroyed)
+                FixedUpdate();
+        }
         protected virtual void FixedUpdate() { }
 
         [Obsolete("Use GameObject.GetComponent instead")]
@@ -45,6 +49,9 @@ namespace CysmicEngine
         public virtual bool OnlyOnePerGO() { return false; }
     }
 
+    /// <summary>
+    /// A component for controlling the GameObject's position, rotation (WIP), and scale. There will always be just one on every GameObject.
+    /// </summary>
     public class Transform : Component
     {
         public float lifespan;

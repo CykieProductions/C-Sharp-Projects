@@ -4,6 +4,9 @@ using System.Linq;
 
 namespace CysmicEngine
 {
+    /// <summary>
+    /// A component that adds Physics to a GameObject. Only one can be on a GameObject.
+    /// </summary>
     public class Rigidbody2D : Component
     {
         HashSet<Collider2D> collidersTouchedLastFrame = new HashSet<Collider2D>();
@@ -85,6 +88,8 @@ namespace CysmicEngine
         protected override void FixedUpdate()
         {
             base.FixedUpdate();
+            if (gameObject.wasDestroyed)
+                return;
 
             //Perform any velocity calculations before checking for walls
             _velocity.y -= gravScale * _constantG * (float)Math.Pow(Time.fixedDeltaTime, 2);
@@ -103,7 +108,8 @@ namespace CysmicEngine
                 if (!myColliders[i].isTrigger)
                     newPos = result;
             }
-            newPos -= myColliders[0].offset;
+
+            newPos -= myColliders[0].offset;//Offset is factored in below
 
             if (newPos.y == float.Epsilon - myColliders[0].offset.y)//won't hit anything vertically
             {
@@ -167,7 +173,7 @@ namespace CysmicEngine
 
             for (int i = 0; i < allColliders.Count; i++)
             {
-                if (allColliders[i].gameObject == gameObject)//Don't collide with self
+                if (allColliders[i] == null || allColliders[i].gameObject == gameObject)//Don't collide with self
                     continue;
 
 

@@ -54,6 +54,13 @@ namespace CysmicEngine
             curPlayTask = null;
         }
 
+        /// <summary>
+        /// Plays an audio clip while ignoring the main output
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="loopCancelKey"></param>
+        /// <param name="clipBank"></param>
+        /// <returns></returns>
         public Task PlayOneOff(string name, out string loopCancelKey, AudioClip[] clipBank = null)//Untested
         {
             loopCancelKey = "[N/A]";
