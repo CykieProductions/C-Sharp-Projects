@@ -142,10 +142,10 @@ namespace CysmicSnake
         void Grow()
         {
             var newSeg = new GameObject($"Snake Segment {segments.Count + 1}", trnfrm: new Transform
-                            (Vector2.Zero, scl: (grid.cellSize, grid.cellSize)),
+                            (Vector2.zero, scl: (grid.cellSize, grid.cellSize)),
                             components: new List<Component>()
                             {
-                            new Shape2D(Color.BlueViolet, (1, 1), Vector2.Zero, fill: true, srtOdr: -10),
+                            new Shape2D(Color.BlueViolet, (1, 1), Vector2.zero, fill: true, srtOdr: -10),
                             new Collider2D((0, 0), (1, 1), isTrig: true),
                             new Rigidbody2D()
                             }
@@ -183,9 +183,13 @@ namespace CysmicSnake
                 moveTimer = timer;
         }
 
-        public override void OnCollisionEnter(Collider2D self, Collider2D other)
+        public override void OnCollisionEnter(Rigidbody2D.Collision collision)
         {
-            base.OnCollisionEnter(self, other);
+            base.OnCollisionEnter(collision);
+
+            var self = collision.self;
+            var other = collision.other;
+
             print("PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP");
             Die();
         }

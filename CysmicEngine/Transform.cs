@@ -9,11 +9,15 @@ namespace CysmicEngine
         public GameObject gameObject;
         public Transform transform;
 
-        internal void OnStart() => Start();
+        internal void OnStart()
+        {
+            //transform = gameObject.transform;
+            Start();
+        }
         protected virtual void Start() { gameObject.StartComponents -= OnStart; }
 
         internal void OnUpdate() => Update();
-        protected virtual void Update() { }
+        protected virtual void Update() { if ((gameObject != null && gameObject.wasDestroyed) || transform.wasDestroyed) gameObject = null; }
 
         //Called after this frame's Draw call
         internal void OnLateUpdate(/*System.Drawing.Graphics graphics*/) => LateUpdate();
@@ -21,7 +25,7 @@ namespace CysmicEngine
 
         internal void OnFixedUpdate()
         {
-            if(!gameObject.wasDestroyed)
+            if(gameObject != null && !gameObject.wasDestroyed)
                 FixedUpdate();
         }
         protected virtual void FixedUpdate() { }
@@ -41,7 +45,7 @@ namespace CysmicEngine
         public virtual void OnTriggerEnter(Collider2D other) { }
         public virtual void OnTriggerStay(Collider2D other) { }
         public virtual void OnTriggerExit(Collider2D other) { }
-        public virtual void OnCollisionEnter(Collider2D self, Collider2D other) { }
+        public virtual void OnCollisionEnter(Rigidbody2D.Collision collision) { }
         public virtual void OnCollisionStay(Collider2D self, Collider2D other) { }
         public virtual void OnCollisionExit(Collider2D self, Collider2D other) { }
 
@@ -72,7 +76,7 @@ namespace CysmicEngine
         }
         public Transform()
         {
-            position = Vector2.Zero;
+            position = Vector2.zero;
             scale = (32, 32);
             rotation = 0;
         }
@@ -115,18 +119,24 @@ namespace CysmicEngine
         {
 
         }*/
-        bool wasDestroyed = false;
+
+        bool _wasDestroyed = false;
+        public bool wasDestroyed { get => _wasDestroyed; private set => _wasDestroyed = value; }
         protected override void Update()
         {
+            base.Update();
+
             if (!wasDestroyed && lifespan > 0 && aliveTimer > lifespan)
             {
+                gameObject._wasDestroyed = true;
                 CysmicGame.Destroy(gameObject);
                 wasDestroyed = true;
             }
             else if (wasDestroyed)
             {
                 print("THIS OBJECT SHOULD'VE BEEN DESTROYED! aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-                //instance.OnUpdate -= Update;
+                //CysmicGame.Destroy(gameObject);
+                //CysmicGame.game.OnUpdate -= Update;
             }
             _aliveTimer += Time.deltaTime;
         }

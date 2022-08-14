@@ -35,7 +35,7 @@
   <ItemGroup>
     <Reference Include="CysmicEngine, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\GitHub\C# Projects\CysmicEngine\bin\Debug\CysmicEngine.dll</HintPath>
+      <HintPath>..\CysmicEngine\bin\Debug\CysmicEngine.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -49,8 +49,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BallController.cs" />
     <Compile Include="BotPlayer.cs" />
     <Compile Include="Grid.cs" />
+    <Compile Include="KeeperController.cs" />
+    <Compile Include="PongGame.cs" />
     <Compile Include="SnakeController.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

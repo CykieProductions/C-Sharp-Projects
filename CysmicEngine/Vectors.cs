@@ -61,7 +61,6 @@ namespace CysmicEngine
             x = xv;
             y = yv;
         }
-
         public static float Distance(Vector2 pnt1, Vector2 pnt2)
         {
             return (float)Math.Sqrt(Math.Pow(pnt2.x - pnt1.x, 2) + Math.Pow(pnt2.y - pnt1.y, 2));
@@ -75,8 +74,10 @@ namespace CysmicEngine
         /// <summary>
         /// A Vector2 of (0, 0)
         /// </summary>
-        /// <returns></returns>
-        public static readonly Vector2 Zero = (0, 0);
+        public static readonly Vector2 zero = (0, 0);
+
+
+        // Casting and Operators //
 
         public static implicit operator Vector2((float, float) tuple)
         {

@@ -24,8 +24,11 @@ namespace Turnbased_RPG_ConsoleApp
                 SaveLoad.Save(allHeroes[i].GetStats(), slotNum, $"{allHeroes[i].name} Stats");
             }
 
-            WorldManager.curArea.eventsTriggeredState = new bool[WorldManager.curArea.events.Count];
-            for (int i = 0; i < WorldManager.curArea.events.Count; i++)//Save if event was triggered
+            int numOfEvents = 0;
+            if (WorldManager.curArea.events != null)//Slot 7 saved "events" as null so I had to add this check. Should this ever be null? 
+                numOfEvents = WorldManager.curArea.events.Count;
+            WorldManager.curArea.eventsTriggeredState = new bool[numOfEvents];
+            for (int i = 0; i < numOfEvents; i++)//Save if event was triggered
             {
                 WorldManager.curArea.eventsTriggeredState[i] = WorldManager.curArea.events[i].alreadyDone;
             }
@@ -51,7 +54,12 @@ namespace Turnbased_RPG_ConsoleApp
             curArea.events = new List<(int progressIndex, Action action, bool alreadyDone)>();
             if (WorldManager.GetAreaByName(curArea.name).events != null)
             {
-                for (int i = 0; i < curArea.eventsTriggeredState.Length; i++)
+
+                int numOfEvents = 0;
+                if (curArea.eventsTriggeredState != null)//Slot 3 saved "eventsTriggeredState" as null so I had to add this check. Should this ever be null? //May be related to loading mid-game
+                    numOfEvents = curArea.eventsTriggeredState.Length;
+
+                for (int i = 0; i < numOfEvents; i++)
                 {
                     curArea.events.Add( (WorldManager.GetAreaByName(curArea.name).events[i].progressIndex, WorldManager.GetAreaByName(curArea.name).events[i].action, curArea.eventsTriggeredState[i]) );
                 }
@@ -73,6 +81,8 @@ namespace Turnbased_RPG_ConsoleApp
             bool gameIsRunning = true;
             bool isInBattle = false;
             int totalExpFromBattle = 0;
+
+            bool useTestStats = false;
 
             SkillManager.ConstructAllSkills();
             Element.ConstructAllElements();
@@ -116,46 +126,51 @@ namespace Turnbased_RPG_ConsoleApp
                 })
             };
 
+            useTestStats = Console.ReadLine() == "c";
 
             List<Hero> heroes = new List<Hero>();
             heroes.Add(allHeroes[0]);
             heroes[0].skills.Add(SkillManager.Scan_Lash);
-            /*heroes.Add(allHeroes[1]);
-            heroes[1].skills.Add(SkillManager.Restore_CP_Allies_Test);
-            heroes[0].skills.Add(SkillManager.Pebble_Blast);
-            heroes[0].skills.Add(SkillManager.Rock_Slide);
-            heroes[0].skills.Add(SkillManager.Spire_Wall);
-            heroes[0].skills.Add(SkillManager.Earthquake);
-            heroes[0].skills.Add(SkillManager.Flame_Burst);
-            heroes[0].skills.Add(SkillManager.Eruption);*/
 
-            //heroes.Add(new Hero("Shady", 1, Element.PLANT, 30, 9, 6, spd: 1));
-            //heroes[0].exp = 5000;
-            /*heroes[0].LearnSkill(SkillManager.Healing_Powder);
-            heroes[0].LearnSkill(SkillManager.Super_Healing_Powder);
-            heroes[0].LearnSkill(SkillManager.Ultra_Healing_Powder);
-            heroes[0].LearnSkill(SkillManager.Healing_Cloud);
-            heroes[0].LearnSkill(SkillManager.Ultra_Healing_Cloud);
-            heroes[0].LearnSkill(SkillManager.Curing_Cloud);
-            heroes[0].LearnSkill(SkillManager.Curing_Powder);
-            heroes[0].LearnSkill(SkillManager.Poision_Cloud);
-            heroes[0].LearnSkill(SkillManager.Ultra_Pheonix_Powder);
-            heroes[0].LearnSkill(SkillManager.Pheonix_Cloud);
-            heroes[0].LearnSkill(SkillManager.Pheonix_Powder);
-            heroes[0].LearnSkill(SkillManager.Poision_Powder);*
+            if (useTestStats)
+            {
+                heroes.Add(allHeroes[1]);
+                heroes[1].skills.Add(SkillManager.Restore_CP_Allies_Test);
+                heroes[0].skills.Add(SkillManager.Pebble_Blast);
+                heroes[0].skills.Add(SkillManager.Rock_Slide);
+                heroes[0].skills.Add(SkillManager.Spire_Wall);
+                heroes[0].skills.Add(SkillManager.Earthquake);
+                heroes[0].skills.Add(SkillManager.Flame_Burst);
+                heroes[0].skills.Add(SkillManager.Eruption);
 
-            heroes[0].LearnSkill(SkillManager.Leaf_Storm);
-            heroes[0].LearnSkill(SkillManager.Root_Wave);
-            heroes[0].LearnSkill(SkillManager.Thorn_Canopy);
-            heroes[0].LearnSkill(SkillManager.Flare_Fall);
-            heroes[0].LearnSkill(SkillManager.Blazing_Vortex);
-            heroes[0].LearnSkill(SkillManager.Supernova);*/
+                //heroes.Add(new Hero("Shady", 1, Element.PLANT, 30, 9, 6, spd: 1));
+                heroes[0].exp = 5000;
+                heroes[0].LearnSkill(SkillManager.Healing_Powder);
+                heroes[0].LearnSkill(SkillManager.Super_Healing_Powder);
+                heroes[0].LearnSkill(SkillManager.Ultra_Healing_Powder);
+                heroes[0].LearnSkill(SkillManager.Healing_Cloud);
+                heroes[0].LearnSkill(SkillManager.Ultra_Healing_Cloud);
+                heroes[0].LearnSkill(SkillManager.Curing_Cloud);
+                heroes[0].LearnSkill(SkillManager.Curing_Powder);
+                heroes[0].LearnSkill(SkillManager.Poison_Cloud);
+                heroes[0].LearnSkill(SkillManager.Ultra_Pheonix_Powder);
+                heroes[0].LearnSkill(SkillManager.Pheonix_Cloud);
+                heroes[0].LearnSkill(SkillManager.Pheonix_Powder);
+                heroes[0].LearnSkill(SkillManager.Poison_Powder);
 
-            //heroes[1].exp = 5000;
-            /*heroes[1].LearnSkill(SkillManager.Damage_Allies_Test);
-            heroes[1].LearnSkill(SkillManager.Poison_Allies_Test);
-            heroes[1].LearnSkill(SkillManager.Ignite_Allies_Test);*/
-            //heroes[1].LearnSkill(SkillManager.Restore_CP_Allies_Test);
+                heroes[0].LearnSkill(SkillManager.Leaf_Storm);
+                heroes[0].LearnSkill(SkillManager.Root_Wave);
+                heroes[0].LearnSkill(SkillManager.Thorn_Canopy);
+                heroes[0].LearnSkill(SkillManager.Flare_Fall);
+                heroes[0].LearnSkill(SkillManager.Blazing_Vortex);
+                heroes[0].LearnSkill(SkillManager.Supernova);
+
+                heroes[1].exp = 5000;
+                heroes[1].LearnSkill(SkillManager.Damage_Allies_Test);
+                heroes[1].LearnSkill(SkillManager.Poison_Allies_Test);
+                heroes[1].LearnSkill(SkillManager.Ignite_Allies_Test);
+                heroes[1].LearnSkill(SkillManager.Restore_CP_Allies_Test);
+            }
 
             WorldManager.ConstructAllAreas(heroes.ToList<Actor>());
 

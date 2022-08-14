@@ -6,10 +6,10 @@
         static bool hasAlteredZoom = false;
 
         //private static Vector2 _lastFramePos = Vector2.Zero;
-        static Vector2 _originalPos = Vector2.Zero;
+        static Vector2 _originalPos = Vector2.zero;
         public static Vector2 originalPos { get => _originalPos; private set => _originalPos = value; }
 
-        private static Vector2 _position = Vector2.Zero;
+        private static Vector2 _position = Vector2.zero;
         public static Vector2 position
         {
             get => _position; set
@@ -43,7 +43,7 @@
             }
         }
 
-        static Vector2 _camCenter = Vector2.Zero;
+        static Vector2 _camCenter = Vector2.zero;
         static public Vector2 camCenter { get { return _camCenter; } }
 
         public static float speed = 120;

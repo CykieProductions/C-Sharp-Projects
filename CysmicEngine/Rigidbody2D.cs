@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using CyTools;
 
 namespace CysmicEngine
 {
@@ -14,10 +15,11 @@ namespace CysmicEngine
         public Action<Collider2D> TriggerStayAction;
         public Action<Collider2D> TriggerExitAction;
 
-        public Action<Collider2D, Collider2D> CollisionEnterAction;
+        public Action<Collision> CollisionEnterAction;
         public Action<Collider2D, Collider2D> CollisionStayAction;
         public Action<Collider2D, Collider2D> CollisionExitAction;
 
+        public bool isStatic = true;
         public bool isKinematic = false;
         public float gravScale = 6;
         const float _constantG = 196f;
@@ -26,22 +28,34 @@ namespace CysmicEngine
         public const bool allowPushing = false;
 
         Vector2 _velocity;
-        public Vector2 velocity { get { return _velocity; } set { _velocity = value; } }
+        public Vector2 velocity { get { return _velocity; } set { _velocity = value; waitToZeroYVel = true; } }
+        public bool waitToZeroYVel = false;
         //float _realXVel = 0;
 
         List<Collider2D> myColliders = new List<Collider2D>();
         //float prevPosTimer = 0;//prevPos is set whenever you're not touching anything
-        Vector2 prevPos = Vector2.Zero;
+        Vector2 prevPos = Vector2.zero;
         private float frictionDamp = 0f;
+        private float prevYVel;
 
         public override bool OnlyOnePerGO()
         {
             return true;
         }
 
+        public Rigidbody2D() { }
+        public Rigidbody2D(bool _isStatic = true, float gravity = 6f)
+        {
+            isStatic = _isStatic;
+            gravScale = gravity;
+        }
+
         protected override void Start()
         {
             base.Start();
+            if(!isStatic)
+                transform.isStatic = isStatic;
+
             //onlyOnePerGO = true;//override the OnlyOnePerGO funtion instead
             myColliders = gameObject.allComponents.OfType<Collider2D>().ToList();
 
@@ -115,10 +129,34 @@ namespace CysmicEngine
             {
                 if (_velocity.y > 0.1f || _velocity.y < -0.1f)
                     transform.Translate(0, _velocity.y);
+
+                prevYVel = _velocity.y;
             }
             else
             {
-                _velocity.y = 0;
+                /*if (Math.Abs(_velocity.y) > 0.0001)//wait a frame
+                {
+                    _velocity.y = _velocity.y.Clamp(-0.0001f, 0.0001f);
+                    //_velocity.y = 8888888888888;
+                }
+                else if (Math.Abs(_velocity.y) <= 0.0001)
+                {
+                    _velocity.y = 0;
+                }*/
+
+                if (_velocity.y != 0)
+                    prevYVel = _velocity.y;//Collsions can't read the y vel in time (?)
+                else
+                    prevYVel = 0;
+
+                //if ((prevYVel > 0 && _velocity.y > 0) || (prevYVel < 0 && _velocity.y < 0))//don't trigger if Y vel was reversed
+                if (!waitToZeroYVel)
+                {
+                    _velocity.y = 0;
+                }
+                else
+                    waitToZeroYVel = false;
+
                 transform.SetPosition((transform.position.x, newPos.y));
             }
 
@@ -136,6 +174,8 @@ namespace CysmicEngine
 
         Vector2 CheckAhead(Collider2D collider, float inputVelX, float inputVelY)
         {
+            var startVel = _velocity;
+
             collider.collidersInContact.Clear();
             Vector2 scale = transform.scale * collider.size;
             Vector2 prevRealPos = prevPos + collider.offset;//transform.position + collider.offset;
@@ -320,7 +360,7 @@ namespace CysmicEngine
                         {
                             if (firstFrame)
                             {
-                                CollisionEnterAction.Invoke(collider, allColliders[i]);
+                                CollisionEnterAction.Invoke(new Collision(collider, allColliders[i], new Vector2(startVel.x, prevYVel) ));
                             }
                             else
                                 CollisionStayAction.Invoke(collider, allColliders[i]);
@@ -468,5 +508,19 @@ namespace CysmicEngine
             }//Check every collider
             return (false, false);
         }*/
+        public struct Collision
+        {
+            public Collider2D self;
+            public Collider2D other;
+            public Vector2 prevVelocity;
+
+            public Collision(Collider2D _self, Collider2D _other, Vector2 preVel)
+            {
+                self = _self;
+                other = _other;
+                prevVelocity = preVel;
+            }
+        }
     }
+
 }

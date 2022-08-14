@@ -39,6 +39,24 @@ namespace CysmicEngine
             CysmicGame.allRenderers.RemoveWhere(x => x.gameObject.wasDestroyed == true);
         }*/
     }
+
+    public static class Extentions
+    {
+        public static Vector2 Normalize(this Vector2 vector)
+        {
+            if (vector.x > 0)
+                vector = (1, vector.y);
+            else if (vector.x < 0)
+                vector = (-1, vector.y);
+
+            if (vector.y > 0)
+                vector = (vector.x, 1);
+            else if (vector.y < 0)
+                vector = (vector.x, -1);
+
+            return vector;
+        }
+    }
 }
 
 namespace CyTools

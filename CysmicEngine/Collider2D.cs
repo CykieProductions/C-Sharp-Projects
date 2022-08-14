@@ -7,7 +7,7 @@ namespace CysmicEngine
     public class Collider2D : Component
     {
         string layer = "";
-        public Vector2 offset = Vector2.Zero;
+        public Vector2 offset = Vector2.zero;
         public Vector2 size = (1, 1);
 
         public HashSet<Collider2D> collidersInContact = new HashSet<Collider2D>();
@@ -24,6 +24,16 @@ namespace CysmicEngine
         //public bool isTouchingAnother;
         public bool isTrigger;
         bool scaleToTransformOnStart = false;
+
+        float _topEdge;
+        public float topEdge { get => _topEdge; private set => _topEdge = value; }
+        float _bottomEdge;
+        public float bottomEdge { get => _bottomEdge; private set => _bottomEdge = value; }
+
+        float _rightEdge;
+        public float rightEdge { get => _rightEdge; private set => _rightEdge = value; }
+        float _leftEdge;
+        public float leftEdge { get => _leftEdge; private set => _leftEdge = value; }
 
         public Collider2D(Vector2 os, Vector2 sz, bool isTrig = false, string lyr = "[default]", bool _scaleToTransform = false)
         {
@@ -56,14 +66,19 @@ namespace CysmicEngine
             scale = transform.scale * size;*/
         }
 
-        /*protected override void Update()
+        protected override void Update()
         {
             base.Update();
             /*if (rb == null)//Should be optimized later
                 TryGetComponent(out rb);*
             /*pos = transform.position + offset;
-            scale = transform.scale * size;*
-        }*/
+            scale = transform.scale * size;*/
+
+            topEdge = transform.position.y + offset.y;
+            bottomEdge = (transform.position.y + offset.y) + (transform.scale.y * size.y);
+            rightEdge = (transform.position.x + offset.x) + (transform.scale.x * size.x);
+            leftEdge = transform.position.x + offset.x;
+        }
 
         /*protected override void FixedUpdate()
         {

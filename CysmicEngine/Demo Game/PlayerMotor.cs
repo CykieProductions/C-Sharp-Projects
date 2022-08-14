@@ -5,7 +5,7 @@ namespace CysmicEngine.Demo_Game
 {
     class InputController : Component
     {
-        public Vector2 movement = Vector2.Zero;
+        public Vector2 movement = Vector2.zero;
         public bool pressedJump;
         public float jumpBuffer = 0.2f;
         public float jumpTimer = 0f;

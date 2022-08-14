@@ -111,7 +111,7 @@ namespace CysmicEngine
             sprite = new Bitmap(Image.FromFile(fullPath));
             sortOrder = srtOdr;
             size = (1, 1);
-            offset = Vector2.Zero;
+            offset = Vector2.zero;
         }
         public SpriteRenderer(string path, Vector2 _size, Vector2 _offset, int srtOdr = 0)
         {
@@ -135,7 +135,7 @@ namespace CysmicEngine
 
         public override void Draw(Graphics graphics)
         {
-            if (size == Vector2.Zero)
+            if (size == Vector2.zero)
             {
                 size = (sprite.Width, sprite.Height);
             }

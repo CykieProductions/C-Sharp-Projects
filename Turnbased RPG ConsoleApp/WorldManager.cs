@@ -99,7 +99,7 @@ namespace Turnbased_RPG_ConsoleApp
             if (firstTime)
                 print("You were able to set up a base camp");
             else
-                print("You arived at the base camp");
+                print("You arrived at the base camp");
 
             print("HP and CP fully restored!");
             for (int i = 0; i < heroes.Count; i++)

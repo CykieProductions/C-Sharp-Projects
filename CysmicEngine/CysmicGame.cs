@@ -29,11 +29,11 @@ namespace CysmicEngine
     {
         public static DateTime prevFrameTime = DateTime.Today;
         public const float fixedDeltaTime = 0.02f;
-        public const float targetFPS = 60;
+        public static float targetFPS = 60;
         static float _deltaTime = 0;
         public static float deltaTime { get { return _deltaTime; } }
 
-        /// <summary>Only for use in the main Game Loop function</summary>
+        /// <summary>Only for use in the main GameLoop function</summary>
         public static void private_SetDT(float newDT)
         {
             _deltaTime = newDT;
@@ -51,8 +51,8 @@ namespace CysmicEngine
         public Vector2 defaultResolution { get => _defaultResolution; protected set => _defaultResolution = value; }
         string title = "New Game";
         public Canvas window = null;
-        Thread GameLoopThread;
-        Thread PhysicsThread;
+        protected Thread GameLoopThread;
+        protected Thread PhysicsThread;
         InterpolationMode drawMode;
 
         public static List<GameObject> allGameObjects = new List<GameObject>();
@@ -61,6 +61,20 @@ namespace CysmicEngine
         public static HashSet<Collider2D> allColliders = new HashSet<Collider2D>();
 
         public static CysmicGame game;
+        public Color backgroundColor = Color.Beige;
+
+
+        public CysmicGame(Vector2 winSize, string _title, InterpolationMode interpolationMode = InterpolationMode.NearestNeighbor, Color? bColor = null)
+        {
+            defaultResolution = winSize;
+            title = _title;
+            drawMode = interpolationMode;
+
+            if (bColor == null)
+                backgroundColor = Color.Beige;
+            else
+                backgroundColor = bColor.Value;
+        }
 
         /// <summary>
         /// Starts the game
@@ -68,7 +82,26 @@ namespace CysmicEngine
         public void Play()
         {
             Time.prevFrameTime = DateTime.MinValue;
-            //window.Paint += InitGraphics;//Render Function will be added later to paint later
+            //window.Paint += InitGraphics;//Render Function will be added later to paint
+
+            InitWindow();
+
+            GameLoopThread = new Thread(GameLoop);
+            game = this;
+
+            GameLoopThread.Start();
+            //Start fixed loop after first frame of game loop
+
+            Application.Run(window);//Must come last
+        }
+
+        protected void InitWindow()
+        {
+            window = null;
+            window = new Canvas();
+            window.Text = title;
+            window.Size = new Size((int)defaultResolution.x, (int)defaultResolution.y);
+
             window.Paint += Render;
             window.KeyDown += Input.Win_KD_Event;
             window.KeyUp += Input.Win_KU_Event;
@@ -84,15 +117,6 @@ namespace CysmicEngine
 
             window.FormClosing += Window_FormClosing;
             window.FormClosed += Window_FormClosed;
-
-            GameLoopThread = new Thread(GameLoop);
-            game = this;
-
-            GameLoopThread.Start();
-            //Start fixed loop after first frame of game loop
-
-            
-            Application.Run(window);
         }
 
         private void Window_MouseLeave(object sender, EventArgs e)
@@ -121,19 +145,7 @@ namespace CysmicEngine
             Application.Exit();
         }
 
-        public CysmicGame(Vector2 winSize, string _title, InterpolationMode interpolationMode = InterpolationMode.NearestNeighbor)
-        {
-            defaultResolution = winSize;
-            title = _title;
-            drawMode = interpolationMode;
-
-            window = new Canvas();
-            window.Text = title;
-            window.Size = new Size((int)defaultResolution.x, (int)defaultResolution.y);
-            //isFullySetUp = false;
-        }
-
-        private void FixedLoop()
+        protected void FixedLoop()
         {
             while (PhysicsThread.IsAlive)
             {
@@ -143,8 +155,17 @@ namespace CysmicEngine
             }
         }
 
-        private void GameLoop()
+        protected virtual void GameLoop()
         {
+            //This didn't work
+            /*window = new Canvas();
+            window.Text = title;
+            window.Size = new Size((int)defaultResolution.x, (int)defaultResolution.y);*/
+            //InitWindow();
+            //Application.Run(window);
+
+
+            while (window.IsDisposed) ;
             OnStart();
             float desiredFrameTime = 1f / Time.targetFPS;
             while (GameLoopThread.IsAlive)
@@ -201,7 +222,7 @@ namespace CysmicEngine
         private void Render(object sender, PaintEventArgs e)
         {
             Graphics graphics = e.Graphics;
-            //graphics.Clear(Color.Beige);
+            //graphics.Clear(backgroundColor);
             /*if (!isFullySetUp)
                 return;*/
             if (Cam.zoom <= 0.1f)//Max zoom out value
@@ -217,12 +238,14 @@ namespace CysmicEngine
             graphics.InterpolationMode = drawMode;
             graphics.SmoothingMode = SmoothingMode.HighSpeed;
 
-            allRenderers = allRenderers.OrderBy(x => x.sortOrder).ToHashSet();
+            //allRenderers.RemoveWhere(x => x == null || x.gameObject == null || x.gameObject.wasDestroyed || x.transform.wasDestroyed);
+            var orderedRenderers = allRenderers.OrderBy(x => x?.sortOrder).ToHashSet();
+            allRenderers = orderedRenderers;
 
             try
             {
-                graphics.Clear(Color.Beige);//moved
-                foreach (var renderer in allRenderers)
+                graphics.Clear(backgroundColor);//moved
+                foreach (var renderer in orderedRenderers)
                 {
                     renderer.Draw(graphics);
                 }
@@ -249,6 +272,9 @@ namespace CysmicEngine
         }
         public static void Destroy(GameObject gameObject)
         {
+            if (gameObject == null)
+                return;
+
             try
             {
                 for (int i = 0; i < gameObject.allComponents.Count; i++)
@@ -256,7 +282,7 @@ namespace CysmicEngine
                     game.OnUpdate -= gameObject.allComponents[i].OnUpdate;
                     game.OnLateUpdate -= gameObject.allComponents[i].OnLateUpdate;
                     game.OnFixedUpdate -= gameObject.allComponents[i].OnFixedUpdate;
-                    gameObject.allComponents[i].gameObject._wasDestroyed = true;
+                    if(gameObject.allComponents[i].gameObject != null) gameObject.allComponents[i].gameObject._wasDestroyed = true;
                     gameObject.allComponents[i] = null;
                 }
 
@@ -285,7 +311,7 @@ namespace CysmicEngine
 
         public Action OnUpdate;
         /// <summary>
-        /// Called before the next frame is drawn
+        /// Called before the next frame is drawn. If overrided, the base function must be called.
         /// </summary>
         public virtual void Update()
         {
@@ -295,7 +321,7 @@ namespace CysmicEngine
 
         public Action OnLateUpdate;
         /// <summary>
-        /// Called after the next frame is drawn
+        /// Called after the next frame is drawn. If overrided, the base function must be called.
         /// </summary>
         public virtual void LateUpdate()
         {

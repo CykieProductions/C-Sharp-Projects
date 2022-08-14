@@ -10,6 +10,28 @@ namespace CysmicEngine
     {
         HORIZONTAL, VERTICAL
     }
+
+    /*public static partial class AxisName
+    {
+        public static readonly Axis HORIZONTAL = new Axis("HORIZONTAL");
+        public static readonly Axis VERTICAL = new Axis("VERTICAL");
+
+        public class Axis
+        {
+            string name;
+
+            public Axis(string varName)
+            {
+                name = varName.ToUpper();
+            }
+
+            public override string ToString()
+            {
+                return name;
+            }
+        }
+    }*/
+
     public static class Input
     {
         public static bool pressedOnThisFrame = true;
@@ -52,7 +74,7 @@ namespace CysmicEngine
             }
         }
 
-        static Dictionary<string, (Keys, Keys)> axes = new Dictionary<string, (Keys, Keys)>()
+        public static Dictionary<string, (Keys, Keys)> axes = new Dictionary<string, (Keys, Keys)>()
         {
             ["Horizontal"] = (Keys.A, Keys.D),//(-1, 1)
             ["horizontal"] = (Keys.Left, Keys.Right),
@@ -207,14 +229,14 @@ namespace CysmicEngine
             return justReleasedKeys.Contains(key);
         }
 
-        public static int GetAxis(AxisName name)
+        public static int GetAxis(AxisName input)
         {
             List<string> altNames = new List<string>();
             for (int i = 0; i < axes.Keys.Count; i++)
             {
-                if (name.ToString().ToUpper() == axes.Keys.ElementAt(i).ToUpper())
+                if (input.ToString().ToUpper() == axes.Keys.ElementAt(i).ToUpper())//If the names (forced to uppercase) match
                 {
-                    altNames.Add(axes.Keys.ElementAt(i));
+                    altNames.Add(axes.Keys.ElementAt(i));//add the unalter name as an alt name for the current input
                 }
             }
             if (altNames.Count == 0)//name didn't match with any alternate capitalizing
@@ -222,7 +244,33 @@ namespace CysmicEngine
 
             for (int i = 0; i < altNames.Count; i++)
             {
-                if (!axes.TryGetValue(altNames[i], out (Keys, Keys) axis))
+                if (!axes.TryGetValue(altNames[i], out (Keys, Keys) axis))//Make sure this alt name is the actual one in the dictionary
+                    continue;
+
+                if (curPressedKeys.Contains(axis.Item1))
+                    return -1;
+                else if (curPressedKeys.Contains(axis.Item2))
+                    return 1;
+            }
+            return 0;//name was valid, but nothing was pressed
+        }
+
+        public static int GetAxis(string input)
+        {
+            List<string> altNames = new List<string>();
+            for (int i = 0; i < axes.Keys.Count; i++)
+            {
+                if (input.ToString().ToUpper() == axes.Keys.ElementAt(i).ToUpper())//If the names (forced to uppercase) match
+                {
+                    altNames.Add(axes.Keys.ElementAt(i));//add the unalter name as an alt name for the current input
+                }
+            }
+            if (altNames.Count == 0)//name didn't match with any alternate capitalizing
+                throw new Exception("The provided Axis name wasn't valid");
+
+            for (int i = 0; i < altNames.Count; i++)
+            {
+                if (!axes.TryGetValue(altNames[i], out (Keys, Keys) axis))//Make sure this alt name is the actual one in the dictionary
                     continue;
 
                 if (curPressedKeys.Contains(axis.Item1))

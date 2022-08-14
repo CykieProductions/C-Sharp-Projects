@@ -99,7 +99,7 @@ namespace CysmicEngine.Demo_Game
                 , components: new List<Component>()
             {
                 //new SpriteRenderer("Main Characters/Virtual Guy/Fall (32x32)", 50),
-                new Shape2D(Color.HotPink, size: (1,1), offset: Vector2.Zero, srtOdr: int.MaxValue),
+                new Shape2D(Color.HotPink, size: (1,1), offset: Vector2.zero, srtOdr: int.MaxValue),
                 new Shape2D(Color.DarkRed, size: (1.25f,1.25f), offset: (-1.75f, -1.75f), srtOdr: int.MaxValue -1),
             }).transform;
 
@@ -108,7 +108,7 @@ namespace CysmicEngine.Demo_Game
                 , components: new List<Component>()
             {
                 //new SpriteRenderer("Main Characters/Virtual Guy/Fall (32x32)", 50),
-                new Shape2D(Color.Red, size: (1,1), offset: Vector2.Zero, srtOdr: -5),
+                new Shape2D(Color.Red, size: (1,1), offset: Vector2.zero, srtOdr: -5),
                 //new PlayerMotor(),
                 //new InputController(),
                 new Rigidbody2D(),
@@ -127,8 +127,8 @@ namespace CysmicEngine.Demo_Game
                 (pos: ((game.window.Size.Width / 2) - 200, (game.window.Size.Height / 2) + 50), scl: (300, 30), rot: 0)
                 , components: new List<Component>()
             {
-                new Shape2D(Color.Blue, size: (1, 1), offset: Vector2.Zero, Shape2D.ShapeType.Rectangle),
-                new Collider2D(Vector2.Zero,(1,1))
+                new Shape2D(Color.Blue, size: (1, 1), offset: Vector2.zero, Shape2D.ShapeType.Rectangle),
+                new Collider2D(Vector2.zero,(1,1))
             }, lyr: "Ground"
             ).transform;
 
@@ -136,8 +136,8 @@ namespace CysmicEngine.Demo_Game
                 (pos: ((game.window.Size.Width / 2) - 60 - 200, (game.window.Size.Height / 2) + 130), scl: (420, 30), rot: 0)
                 , components: new List<Component>()
             {
-                new Shape2D(Color.Blue, size: (1, 1), offset: Vector2.Zero, Shape2D.ShapeType.Rectangle),
-                new Collider2D(Vector2.Zero,(1,1))
+                new Shape2D(Color.Blue, size: (1, 1), offset: Vector2.zero, Shape2D.ShapeType.Rectangle),
+                new Collider2D(Vector2.zero,(1,1))
             }, lyr: "Ground"
             ).transform;
 
@@ -145,8 +145,8 @@ namespace CysmicEngine.Demo_Game
                 (pos: ((game.window.Size.Width / 2) - 60, (game.window.Size.Height / 2) - 50), scl: (20, 300), rot: 0)
                 , components: new List<Component>()
             {
-                new Shape2D(Color.Blue, size: (1, 1), offset: Vector2.Zero, Shape2D.ShapeType.Rectangle),
-                new Collider2D(Vector2.Zero,(1,1))
+                new Shape2D(Color.Blue, size: (1, 1), offset: Vector2.zero, Shape2D.ShapeType.Rectangle),
+                new Collider2D(Vector2.zero,(1,1))
             }, lyr: "Ground"
             ).transform;
         }
@@ -205,8 +205,8 @@ namespace CysmicEngine.Demo_Game
                     (pos: ((game.window.Size.Width / 2) - 200, (game.window.Size.Height / 2) + 50), scl: (300, 30), rot: 0)
                     , components: new List<Component>()
                 {
-                new Shape2D(Color.Blue, size: (1, 1), offset: Vector2.Zero, Shape2D.ShapeType.Rectangle),
-                new Collider2D(Vector2.Zero,(1,1))
+                new Shape2D(Color.Blue, size: (1, 1), offset: Vector2.zero, Shape2D.ShapeType.Rectangle),
+                new Collider2D(Vector2.zero,(1,1))
                 }, lyr: "Ground"
                 ).transform;
 
@@ -218,11 +218,12 @@ namespace CysmicEngine.Demo_Game
                     (pos: ((game.window.Size.Width / 2) - 200, (game.window.Size.Height / 2) + 50), scl: (300, 30), rot: 0)
                     , components: new List<Component>()
                 {
-                new Shape2D(Color.FromArgb(100, Color.Blue), size: (1, 1), offset: Vector2.Zero, Shape2D.ShapeType.Rectangle),
+                new Shape2D(Color.FromArgb(50, Color.Blue), size: (1, 1), offset: Vector2.zero, Shape2D.ShapeType.Rectangle),
                 }, lyr: "Ground"
                 ).transform;
 
                 newGround.position = cursorObj.position;
+                newGround.lifespan = 0.001f;
             }
 
             /*//Vector2 camPos = (graphics.DpiX / 2, graphics.DpiY / 2);

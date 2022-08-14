@@ -13,7 +13,7 @@ namespace CysmicSnake
 
     class SnakeGame : CysmicGame
     {
-        public SnakeGame(Vector2 winSize, string t, InterpolationMode im = InterpolationMode.NearestNeighbor) : base(winSize, t, im)
+        public SnakeGame(Vector2 winSize, string t, InterpolationMode im = InterpolationMode.NearestNeighbor, Color? bColor = null) : base(winSize, t, im, bColor)
         {
             //displayGizmos = true;
         }
@@ -28,7 +28,7 @@ namespace CysmicSnake
             snakesInPlay = new List<SnakeController>();
             Vector2 screenCenter = ((game.window.Size.Width / 2), (game.window.Size.Height / 2));
 
-            grid = new Grid(Vector2.Zero + (200, 50), (18, 18));
+            grid = new Grid(Vector2.zero + (200, 50), (18, 18));
             grid.DrawGrid();
 
             mainSnake = new GameObject("Mainey", trnfrm: new Transform
@@ -36,7 +36,7 @@ namespace CysmicSnake
                 , components: new List<Component>()
             {
                 //new SpriteRenderer("Main Characters/Virtual Guy/Fall (32x32)", 50),
-                new Shape2D(Color.Blue, size: (1,1), offset: Vector2.Zero, srtOdr: 50),
+                new Shape2D(Color.Blue, size: (1,1), offset: Vector2.zero, srtOdr: 50),
                 //new PlayerMotor(),
                 //new InputController(),
                 new Rigidbody2D(),
@@ -50,12 +50,12 @@ namespace CysmicSnake
             mainSnake.gameObject.GetComponent<Rigidbody2D>().gravScale = 0;
             mainSnake.playerControlled = false;
 
-            var botSnake = new GameObject("Greenie", trnfrm: new Transform
+            /*var botSnake = new GameObject("Greenie", trnfrm: new Transform
                 (screenCenter - (0, 90), scl: (grid.cellSize, grid.cellSize), 0)
                 , components: new List<Component>()
             {
                 //new SpriteRenderer("Main Characters/Virtual Guy/Fall (32x32)", 50),
-                new Shape2D(Color.Blue, size: (1,1), offset: Vector2.Zero, srtOdr: 50),
+                new Shape2D(Color.Blue, size: (1,1), offset: Vector2.zero, srtOdr: 50),
                 //new PlayerMotor(),
                 //new InputController(),
                 new Rigidbody2D(),
@@ -70,11 +70,11 @@ namespace CysmicSnake
             botSnake.gameObject.GetComponent<Rigidbody2D>().gravScale = 0;
             //botSnake.bot.botMoveDelay = 0.1f;
             botSnake.headColor = Color.YellowGreen;
-            botSnake.bodyColors = new Color[2] { Color.Green, Color.ForestGreen };
+            botSnake.bodyColors = new Color[2] { Color.Green, Color.ForestGreen };*/
 
 
             snakesInPlay.Add(mainSnake);
-            snakesInPlay.Add(botSnake);
+            //snakesInPlay.Add(botSnake);
 
             grid.SpawnAppleRandomly();
             isRestarting = false;
@@ -82,7 +82,7 @@ namespace CysmicSnake
 
         float restartTimer = 0;
         float restartDelay = 3;
-        private int moveFrameStagger;
+        //private int moveFrameStagger;
 
         public override void Update()
         {

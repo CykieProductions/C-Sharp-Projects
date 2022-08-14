@@ -67,7 +67,7 @@ namespace CysmicSnake
 
             appleCell = (x, y);
             //print($"Apple placed at {apple.transform.position}");
-            apple.gameObject.AddComponent(new Shape2D(Color.Red, (1, 1), Vector2.Zero, fill: true));//this can be replace with enabling the GameObject or component
+            apple.gameObject.AddComponent(new Shape2D(Color.Red, (1, 1), Vector2.zero, fill: true));//this can be replace with enabling the GameObject or component
         }
         public bool IsOverlappingPosition(Transform self, Vector2? posToCheck = null)
         {
@@ -106,7 +106,7 @@ namespace CysmicSnake
                     if (collider.gameObject.layer == "Snake Head")
                         gizColor = Color.DarkCyan;
 
-                    var giz = new GameObject("giz", new Transform(Vector2.Zero, (cellSize, cellSize)), new List<Component>() 
+                    var giz = new GameObject("giz", new Transform(Vector2.zero, (cellSize, cellSize)), new List<Component>() 
                     {
                         new Shape2D(gizColor, (1, 1), (0, 0), fill: false, srtOdr: 999)
                     });
@@ -134,13 +134,25 @@ namespace CysmicSnake
                             (startPos + (x * cellSize, y * cellSize), scl: (cellSize, cellSize)),
                             components: new List<Component>()
                             {
-                            new Shape2D(Color.Black, (1, 1), Vector2.Zero, fill: true),
+                            new Shape2D(CysmicGame.game.backgroundColor, (1, 1), Vector2.zero, fill: true),
                             new Collider2D((0, 0), (1, 1), isTrig: true),
                             new Rigidbody2D()
                             }
                             );
                         box.layer = "Border";
                         //box.transform.isStatic = false;
+                    }
+                    else
+                    {
+                        new GameObject($"Background ({x},{y})", trnfrm: new Transform
+                            (startPos + (x * cellSize, y * cellSize), scl: (cellSize, cellSize)),
+                            components: new List<Component>()
+                            {
+                            new Shape2D(Color.Beige, (1, 1), Vector2.zero, fill: true, srtOdr: int.MinValue),
+                            //new Collider2D((0, 0), (1, 1), isTrig: true),
+                            //new Rigidbody2D()
+                            }
+                            );
                     }
 
                 }
