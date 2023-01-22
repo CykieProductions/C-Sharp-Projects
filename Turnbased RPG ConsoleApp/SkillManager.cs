@@ -207,7 +207,7 @@ namespace Turnbased_RPG_ConsoleApp
                 target.ModifyHealth(-2, Scan_Lash);
 
                 Console.ForegroundColor = ConsoleColor.Cyan;
-                print("------------------------------------");//36
+                print("-".Repeat(36));
                 print($"Scan results for {target.name}:");
                 print($"LV: {target.level}");
                 print($"ELMT: {target.element.nameFromEnum}");
@@ -227,7 +227,8 @@ namespace Turnbased_RPG_ConsoleApp
 
                 print($"HP: {target.hp}/{target.maxHp}");
                 print($"CP: {target.cp}/{target.maxCp}");
-                print("------------------------------------");//36
+                //print("------------------------------------");//36
+                print("-".Repeat(36));
                 Console.ForegroundColor = ConsoleColor.White;
                 Console.ReadKey(true);
             }
@@ -1464,6 +1465,17 @@ namespace Turnbased_RPG_ConsoleApp
 
     public static class Extentions
     {
+        public static string Repeat(this string value, int count)
+        {
+            string final = string.Empty;
+            for (int i = 0; i < count; i++)
+            {
+                final += value;
+            }
+
+            return final;
+        }
+
         /// <summary>
         /// Clamps any valid *number* between the min and max *number*
         /// </summary>

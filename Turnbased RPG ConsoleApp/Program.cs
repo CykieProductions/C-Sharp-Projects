@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 
@@ -8,7 +9,19 @@ namespace Turnbased_RPG_ConsoleApp
 {
     public class Program : Basic
     {
+        #region Custom Console Colors | From: https://stackoverflow.com/questions/7937256/custom-text-color-in-c-sharp-console-application
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool SetConsoleMode(IntPtr hConsoleHandle, int mode);
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool GetConsoleMode(IntPtr handle, out int mode);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern IntPtr GetStdHandle(int handle);
+        #endregion
+
+        static bool justLoaded = true;
         public static List<Hero> fullHeroList;
+
         public static Hero GetHeroByName(string n)
         {
             return fullHeroList.Find(x => x.name == n);
@@ -69,10 +82,23 @@ namespace Turnbased_RPG_ConsoleApp
             WorldManager.areaProgress = loadedArea.Item2;
 
             var visitedAreas = WorldManager.visitedAreas = SaveLoad.Load<List<WorldManager.Area>>(slotNum, "Visited Areas");
+            justLoaded = true;//Maybe Replace with an Event?
         }
 
         static void Main(string[] args)
         {
+            #region Custom Console Colors
+            {var handle = GetStdHandle(-11);
+            int mode;
+            GetConsoleMode(handle, out mode);
+            SetConsoleMode(handle, mode | 0x4);}
+
+            string SetBGColor(byte red, byte green, byte blue)
+            {
+                return "\x1b[48;2;" + red + ";" + green + ";" + blue + "m";
+            }
+            #endregion
+
             SaveLoad.InitializeDataPath();
 
             string input = "";
@@ -83,6 +109,7 @@ namespace Turnbased_RPG_ConsoleApp
             int totalExpFromBattle = 0;
 
             bool useTestStats = false;
+            bool addFoo = false;
 
             SkillManager.ConstructAllSkills();
             Element.ConstructAllElements();
@@ -126,51 +153,15 @@ namespace Turnbased_RPG_ConsoleApp
                 })
             };
 
-            useTestStats = Console.ReadLine() == "c";
+            {
+                var debugInput = Console.ReadLine();
+                useTestStats = debugInput == "c";
+                addFoo = debugInput == "foo";
+            }
 
             List<Hero> heroes = new List<Hero>();
             heroes.Add(allHeroes[0]);
             heroes[0].skills.Add(SkillManager.Scan_Lash);
-
-            if (useTestStats)
-            {
-                heroes.Add(allHeroes[1]);
-                heroes[1].skills.Add(SkillManager.Restore_CP_Allies_Test);
-                heroes[0].skills.Add(SkillManager.Pebble_Blast);
-                heroes[0].skills.Add(SkillManager.Rock_Slide);
-                heroes[0].skills.Add(SkillManager.Spire_Wall);
-                heroes[0].skills.Add(SkillManager.Earthquake);
-                heroes[0].skills.Add(SkillManager.Flame_Burst);
-                heroes[0].skills.Add(SkillManager.Eruption);
-
-                //heroes.Add(new Hero("Shady", 1, Element.PLANT, 30, 9, 6, spd: 1));
-                heroes[0].exp = 5000;
-                heroes[0].LearnSkill(SkillManager.Healing_Powder);
-                heroes[0].LearnSkill(SkillManager.Super_Healing_Powder);
-                heroes[0].LearnSkill(SkillManager.Ultra_Healing_Powder);
-                heroes[0].LearnSkill(SkillManager.Healing_Cloud);
-                heroes[0].LearnSkill(SkillManager.Ultra_Healing_Cloud);
-                heroes[0].LearnSkill(SkillManager.Curing_Cloud);
-                heroes[0].LearnSkill(SkillManager.Curing_Powder);
-                heroes[0].LearnSkill(SkillManager.Poison_Cloud);
-                heroes[0].LearnSkill(SkillManager.Ultra_Pheonix_Powder);
-                heroes[0].LearnSkill(SkillManager.Pheonix_Cloud);
-                heroes[0].LearnSkill(SkillManager.Pheonix_Powder);
-                heroes[0].LearnSkill(SkillManager.Poison_Powder);
-
-                heroes[0].LearnSkill(SkillManager.Leaf_Storm);
-                heroes[0].LearnSkill(SkillManager.Root_Wave);
-                heroes[0].LearnSkill(SkillManager.Thorn_Canopy);
-                heroes[0].LearnSkill(SkillManager.Flare_Fall);
-                heroes[0].LearnSkill(SkillManager.Blazing_Vortex);
-                heroes[0].LearnSkill(SkillManager.Supernova);
-
-                heroes[1].exp = 5000;
-                heroes[1].LearnSkill(SkillManager.Damage_Allies_Test);
-                heroes[1].LearnSkill(SkillManager.Poison_Allies_Test);
-                heroes[1].LearnSkill(SkillManager.Ignite_Allies_Test);
-                heroes[1].LearnSkill(SkillManager.Restore_CP_Allies_Test);
-            }
 
             WorldManager.ConstructAllAreas(heroes.ToList<Actor>());
 
@@ -206,7 +197,21 @@ namespace Turnbased_RPG_ConsoleApp
                             print((e + 1) + ". " + targetPool[e].name, true);
 
                             if (targetPool[e] is Hero)
-                                print(" (HP: " + targetPool[e].hp + ")", true);
+                                print($" (HP: {targetPool[e].hp}/{targetPool[e].maxHp})", true);
+
+                            targetPool[e].statusEffects.RemoveAll(x => x == null);
+                            //Display Status Effects
+                            if (targetPool[e].statusEffects.Count > 0)
+                            {
+                                print(" (", true);
+                                for (int i = 0; i < targetPool[e].statusEffects.Count; i++)
+                                {
+                                    print(targetPool[e].statusEffects[i].name, true);
+                                    if (i < targetPool[e].statusEffects.Count - 1)
+                                        print(", ", true);
+                                }
+                                print(")", true);
+                            }
 
                             print("  ", true);
                         }
@@ -241,7 +246,7 @@ namespace Turnbased_RPG_ConsoleApp
 
                     if (skills.Count > 0)
                     {
-                        print(hero.name + " | HP: " + hero.hp + " | CP: " + hero.cp);
+                        print($"{hero.name} | HP: {hero.hp}/{hero.maxHp} | CP: {hero.cp}/{hero.maxCp}");
                         print("Choose a skill");
 
                         for (int s = 0; s < skills.Count; s++)
@@ -256,6 +261,41 @@ namespace Turnbased_RPG_ConsoleApp
 
                             //if (skills[s].element != Element.NONE)
                                 elementText += "| Elmt: " + skills[s].element.nameFromEnum.ToString() + "  \t";
+
+                            //! Forms a more readable target indicator
+                            string formattedTargetType = "";
+
+                            if (skills[s].targetType == SkillBase.TargetType.TARGET_SINGLE_ALLY)
+                            {
+                                formattedTargetType = "ONE ALLY";
+                            }
+                            else if (skills[s].targetType == SkillBase.TargetType.TARGET_ALL_ALLIES)
+                            {
+                                formattedTargetType = "PARTY";
+                            }
+                            else if (skills[s].targetType == SkillBase.TargetType.TARGET_SINGLE_OPPONENT)
+                            {
+                                formattedTargetType = "ONE ENEMY";
+                            }
+                            else if (skills[s].targetType == SkillBase.TargetType.TARGET_ALL_OPPONENTS)
+                            {
+                                formattedTargetType = "ALL ENEMIES";
+                            }
+                            else if (skills[s].targetType == SkillBase.TargetType.TARGET_EVERYONE)
+                            {
+                                formattedTargetType = "EVERYONE";
+                            }
+                            else if (skills[s].targetType == SkillBase.TargetType.TARGET_ANYONE)
+                            {
+                                formattedTargetType = "ANYONE";
+                            }
+                            else// if (skills[s].targetType == SkillBase.TargetType.NO_TARGET)
+                            {
+                                formattedTargetType = "SELF";
+                            }
+
+                            string targetingText = "| Targets: " + formattedTargetType;
+                            targetingText = string.Format("{0, -50}", targetingText);
 
                             //tabstops occur every 8 spaces
                             //print((s + 1 + ".  " + skills[s].skillName).Length);
@@ -277,25 +317,33 @@ namespace Turnbased_RPG_ConsoleApp
                             //Initial space if single digit
                             if (s + 1 < 10)
                                 print(" ", true);
+
+                            string bgc = SetBGColor(255, 255, 255);
                             if (skills[s].skillType != SkillBase.SkillType.DAMAGING && skills[s].skillType != SkillBase.SkillType.INFLICTING)//if (s % 2 == 0)
                             {
                                 Console.ForegroundColor = ConsoleColor.Yellow;
-                                Console.BackgroundColor = ConsoleColor.DarkBlue;
+                                //Console.BackgroundColor = ConsoleColor.DarkBlue;
+                                bgc = SetBGColor(0, 0, 150);
+                                //Console.Write("\x1b[48;2;" + /*red*/0 + ";" + /*green*/0 + ";" + /*blue*/150 + "m");
                             }
                             else if (skills[s].skillType == SkillBase.SkillType.DAMAGING)
                             {
                                 Console.ForegroundColor = ConsoleColor.Yellow;
-                                Console.BackgroundColor = ConsoleColor.Magenta;
+                                //Console.BackgroundColor = ConsoleColor.Magenta;
+                                bgc = SetBGColor(170, 0, 170);
+                                //Console.Write("\x1b[48;2;" + /*red*/170 + ";" + /*green*/0 + ";" + /*blue*/170 + "m");
                             }
                             else
                             {
                                 Console.ForegroundColor = ConsoleColor.Yellow;
-                                Console.BackgroundColor = ConsoleColor.DarkMagenta;
+                                //Console.BackgroundColor = ConsoleColor.DarkMagenta;
+                                bgc = SetBGColor(70, 0, 100);
+                                //Console.Write("\x1b[48;2;" + /*red*/70 + ";" + /*green*/0 + ";" + /*blue*/100 + "m");
                             }
                             print(" ", true);
 
 
-                            print(skills[s].skillName + tabs + " | CP: " + skills[s].skillCost + elementText);
+                            print($"{bgc + skills[s].skillName + tabs} | CP: {skills[s].skillCost} {elementText} {targetingText}");
 
                             /*if (s + 1 < skills.Count)
                                 print("");*/
@@ -447,9 +495,74 @@ namespace Turnbased_RPG_ConsoleApp
                     return true;
                 }
 
+
                 #region OVERWORLD LOGIC
                 while (!isInBattle && gameIsRunning)//Overworld Logic
                 {
+
+                    if (justLoaded)
+                    {
+                        if (addFoo)
+                        {
+                            if (heroes.Find(x => x.name == "Foo") == null)
+                                heroes.Add(allHeroes[1]);
+
+                            var foo = heroes.Find(x => x.name == "Foo");
+                            foo.exp = heroes[0].exp;
+                            while (foo.exp >= foo.neededExp)
+                                foo.LevelUp();
+                        }
+                        else if (useTestStats)
+                        {
+                            heroes.Add(allHeroes[1]);
+                            heroes[0].LearnSkill/*skills.Add*/(SkillManager.Pebble_Blast);
+                            heroes[0].LearnSkill/*skills.Add*/(SkillManager.Rock_Slide);
+                            heroes[0].LearnSkill/*skills.Add*/(SkillManager.Spire_Wall);
+                            heroes[0].LearnSkill/*skills.Add*/(SkillManager.Earthquake);
+                            heroes[0].LearnSkill/*skills.Add*/(SkillManager.Flame_Burst);
+                            heroes[0].LearnSkill/*skills.Add*/(SkillManager.Eruption);
+
+                            //heroes.Add(new Hero("Shady", 1, Element.PLANT, 30, 9, 6, spd: 1));
+                            heroes[0].exp = 5000;
+                            heroes[0].LearnSkill(SkillManager.Healing_Powder);
+                            heroes[0].LearnSkill(SkillManager.Super_Healing_Powder);
+                            heroes[0].LearnSkill(SkillManager.Ultra_Healing_Powder);
+                            heroes[0].LearnSkill(SkillManager.Healing_Cloud);
+                            heroes[0].LearnSkill(SkillManager.Ultra_Healing_Cloud);
+                            heroes[0].LearnSkill(SkillManager.Curing_Cloud);
+                            heroes[0].LearnSkill(SkillManager.Curing_Powder);
+                            heroes[0].LearnSkill(SkillManager.Poison_Cloud);
+                            heroes[0].LearnSkill(SkillManager.Ultra_Pheonix_Powder);
+                            heroes[0].LearnSkill(SkillManager.Pheonix_Cloud);
+                            heroes[0].LearnSkill(SkillManager.Pheonix_Powder);
+                            heroes[0].LearnSkill(SkillManager.Poison_Powder);
+
+                            heroes[0].LearnSkill(SkillManager.Leaf_Storm);
+                            heroes[0].LearnSkill(SkillManager.Root_Wave);
+                            heroes[0].LearnSkill(SkillManager.Thorn_Canopy);
+
+                            heroes[0].LearnSkill(SkillManager.Flare_Fall);
+                            heroes[0].LearnSkill(SkillManager.Blazing_Vortex);
+                            heroes[0].LearnSkill(SkillManager.Supernova);
+
+                            heroes[1].exp = 5000;
+                            heroes[1].LearnSkill(SkillManager.Damage_Allies_Test);
+                            heroes[1].LearnSkill(SkillManager.Poison_Allies_Test);
+                            heroes[1].LearnSkill(SkillManager.Ignite_Allies_Test);
+                            heroes[1].LearnSkill(SkillManager.Restore_CP_Allies_Test);
+
+                            foreach (var hero in heroes)
+                            {
+                                while (hero.exp >= hero.neededExp)
+                                {
+                                    hero.LevelUp();
+                                }
+                            }
+                        }
+
+                        justLoaded = false;
+                    }
+
                     /*Console.ForegroundColor = ConsoleColor.Black;
                     Console.BackgroundColor = ConsoleColor.White;*/
                     if (curHeroes != null)
@@ -666,7 +779,7 @@ namespace Turnbased_RPG_ConsoleApp
                             var hero = heroes[i];
 
                             print("What will " + hero.name + " do?");
-                            print("HP: " + hero.hp + " | CP: " + hero.cp);
+                            print($"HP: {hero.hp}/{hero.maxHp} | CP: {hero.cp}/{hero.maxCp}");
                             
                             print("1. ATTACK  2. CONRA  3. GUARD", true);
                             if (hero == activeHeroes[0])//only the first active hero can run
@@ -759,7 +872,8 @@ namespace Turnbased_RPG_ConsoleApp
                     print("");//Space
                     #endregion
 
-                    for (int i = 0; i < enemies.Count; i++)//Enemies are choosing
+                    //Enemies are choosing
+                    for (int i = 0; i < enemies.Count; i++)
                     {
                         //enemies[i].nextAction = SkillManager.Attack;
                         decidingEnemy = enemies[i];
@@ -769,8 +883,9 @@ namespace Turnbased_RPG_ConsoleApp
                         Thread.Sleep(TimeSpan.FromSeconds(0.01));
                     }
 
+                    #region DETERMINE THE TURN ORDER
                     Actor[] allActors = new Actor[heroes.Count + enemies.Count];//Start blank then fill up
-                    //#region DETERMINE THE TURN ORDER
+                    
                     {//keep unorderedActors within this scope
                         List<Actor> unorderedActors = heroes.ToList<Actor>().Concat(enemies.ToList<Actor>()).ToList();
                         for (int ei = 0; ei < allActors.Length; ei++)
@@ -873,7 +988,7 @@ namespace Turnbased_RPG_ConsoleApp
                             //print(allActors[ei].name + " has a speed of " + allActors[ei].speed);
                         }
                     }
-                    //#endregion
+                    #endregion
 
                     #region PLAY TURN
                     for (int i = 0; i < allActors.Length; i++)
@@ -881,6 +996,9 @@ namespace Turnbased_RPG_ConsoleApp
                         if (!isInBattle)
                             break;
                         var curActor = allActors[i];
+                        if (curActor == null)
+                            continue;
+
                         actingActor = curActor;
                         if (curActor.hp <= 0)//skip actors that were defeated before their turn
                             continue;

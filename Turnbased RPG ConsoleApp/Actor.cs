@@ -440,7 +440,7 @@ namespace Turnbased_RPG_ConsoleApp
             if (randInt > 0)
                 print("SPECIAL ATTACK increased by " + randInt);
 
-            randInt = RandomInt(-1, 3).Clamp(0, 3);
+            randInt = RandomInt(-1, 3).Clamp(0, 3);//lower chance of increasing
             defense += randInt;
             if (randInt > 0)
                 print("DEFENSE increased by " + randInt);

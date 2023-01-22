@@ -209,7 +209,7 @@ namespace Turnbased_RPG_ConsoleApp
                 SkillManager.Waste_Short_Circut
             }));
 
-            var leviac = new Enemy("Leviac", lv: 10, elmt: Element.WATER, mhp: 250, mcp: 80, atk: 5, def: 1, spAtk: 9, spd: 1, exp: 78, new List<SkillBase>()
+            var leviac = new Enemy("Leviac", lv: 10, elmt: Element.WATER, mhp: /*250*/360, mcp: 80, atk: 5, def: 1, spAtk: 9, spd: 1, exp: 78, new List<SkillBase>()
             {
                 SkillManager.Geo_Shift,
                 new Skill<Actor, Actor>("Bite", (user, target) => {
@@ -233,6 +233,11 @@ namespace Turnbased_RPG_ConsoleApp
 
                     new StatusEffect.Type("SUBMERGED", 2, 3, (x) =>
                     {
+                        for (int i = 0; i < user.statusEffects.Count; i++)
+                        {
+                            user.statusEffects[i].TryRemoveEffect(user, true);
+                        }
+
                         user.element = new Element.Type(Element.WATER);//New element that acts like WATER, but dodges everything except ELECTRIC
                         user.element.unfazedBy.Add(Element.NONE);
                         //user.element.unfazedBy.Add(Element.IGNORE_ALL);
@@ -262,6 +267,11 @@ namespace Turnbased_RPG_ConsoleApp
 
                     new StatusEffect.Type("SUBMERGED", 2, 3, (x) =>
                     {
+                        for (int i = 0; i < user.statusEffects.Count; i++)
+                        {
+                            user.statusEffects[i].TryRemoveEffect(user, true);
+                        }
+
                         user.element = new Element.Type(Element.WATER);//New element that acts like WATER, but dodges everything except ELECTRIC
                         user.element.unfazedBy.Add(Element.NONE);
                         //user.element.unfazedBy.Add(Element.IGNORE_ALL);
